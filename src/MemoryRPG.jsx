@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { generateMemoryFloorStory } from './utils/gemini';
 
 // 視野制限の半径 (プレイヤー周囲15マスの viewport)
@@ -215,6 +215,31 @@ export default function MemoryRPG() {
     ? 'ACTIVE (LocalStorage)' 
     : (import.meta.env.VITE_GEMINI_API_KEY ? 'ACTIVE (ViteENV)' : 'NOT_FOUND (FallbackMode)');
 
+  // 最新ステータスを常に保持する useRef (キー監視のクロージャ問題を完全に解決)
+  const stateRef = useRef({
+    player,
+    dungeon,
+    isLoading,
+    isLoadError,
+    isConnectionStarted,
+    objects,
+    allFound,
+    observerNpc
+  });
+
+  useEffect(() => {
+    stateRef.current = {
+      player,
+      dungeon,
+      isLoading,
+      isLoadError,
+      isConnectionStarted,
+      objects,
+      allFound,
+      observerNpc
+    };
+  }, [player, dungeon, isLoading, isLoadError, isConnectionStarted, objects, allFound, observerNpc]);
+
   // 階層読み込み時の処理
   useEffect(() => {
     // 接続開始フラグが有効になるまでは通信を一切行わない
@@ -350,15 +375,16 @@ export default function MemoryRPG() {
     });
   }, [player.x, player.y, dungeon, rooms]);
 
-  const movePlayer = (dx, dy) => {
-    if (!dungeon || isLoading || isLoadError) return;
+  const movePlayerRef = (dx, dy) => {
+    const { dungeon: activeDungeon, player: activePlayer, isLoading: activeLoading, isLoadError: activeError, objects: activeObjs, allFound: activeAllFound, observerNpc: activeNpc } = stateRef.current;
+    if (!activeDungeon || activeLoading || activeError) return;
     
-    const newX = player.x + dx;
-    const newY = player.y + dy;
+    const newX = activePlayer.x + dx;
+    const newY = activePlayer.y + dy;
 
-    if (newY < 0 || newY >= dungeon.length || newX < 0 || newX >= dungeon[0].length) return;
+    if (newY < 0 || newY >= activeDungeon.length || newX < 0 || newX >= activeDungeon[0].length) return;
 
-    const tile = dungeon[newY][newX];
+    const tile = activeDungeon[newY][newX];
     if (tile.type === 'wall') return;
 
     setPlayer({ x: newX, y: newY });
@@ -366,7 +392,7 @@ export default function MemoryRPG() {
     // オブジェクトに接触
     if (tile.type === 'object') {
       const objId = tile.id;
-      const targetObj = objects.find(o => o.id === objId);
+      const targetObj = activeObjs.find(o => o.id === objId);
       
       if (targetObj) {
         if (targetObj.found) {
@@ -375,10 +401,10 @@ export default function MemoryRPG() {
             ...prev
           ]);
         } else {
-          const foundCount = objects.filter(o => o.found).length;
+          const foundCount = activeObjs.filter(o => o.found).length;
           
           // A~Zの順番で厳密にデータ回収を行う順序チェック
-          const chars = Array.from({ length: objects.length }, (_, i) => String.fromCharCode(65 + i));
+          const chars = Array.from({ length: activeObjs.length }, (_, i) => String.fromCharCode(65 + i));
           const expectedId = chars[foundCount];
           
           if (objId === expectedId) {
@@ -391,7 +417,7 @@ export default function MemoryRPG() {
             
             setSystemLogs(prev => [
               { type: 'diary_reveal', name: `BLOCK_${targetObj.id}`, text: targetObj.text },
-              { type: 'system', text: `Synchronized memory block [${targetObj.name}] (Offset ${foundCount + 1}/${objects.length}).` },
+              { type: 'system', text: `Synchronized memory block [${targetObj.name}] (Offset ${foundCount + 1}/${activeObjs.length}).` },
               ...prev
             ]);
 
@@ -400,7 +426,6 @@ export default function MemoryRPG() {
               { name: `BLOCK_${targetObj.id}`, text: targetObj.text, count: foundCount + 1 }
             ]);
           } else {
-            const correctNextName = objects[foundCount] ? objects[foundCount].name : expectedId;
             setSystemLogs(prev => [
               { type: 'error', text: `Sync Error: Stream discontinuity detected. Expected block [${expectedId}] before accessing [${objId}].` },
               ...prev
@@ -411,16 +436,16 @@ export default function MemoryRPG() {
     }
 
     // 観察者NPCに接触
-    if (tile.type === 'npc' && observerNpc) {
+    if (tile.type === 'npc' && activeNpc) {
       setSystemLogs(prev => [
-        { type: 'npc_dialog', name: `OBSERVER: ${observerNpc.name}`, text: observerNpc.text },
+        { type: 'npc_dialog', name: `OBSERVER: ${activeNpc.name}`, text: activeNpc.text },
         ...prev
       ]);
     }
 
     // 階段に到達
     if (tile.type === 'stairs') {
-      if (!allFound) {
+      if (!activeAllFound) {
         setSystemLogs(prev => [
           { type: 'error', text: `Sync Error: Sector synchronization incomplete. Please scan all unallocated memory nodes first.` },
           ...prev
@@ -431,26 +456,29 @@ export default function MemoryRPG() {
     }
   };
 
-  // キーボードイベントハンドラ
+  // キーボードイベントハンドラ (マウント時に1回だけwindowに登録する絶対設計)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (isLoading || isLoadError || !isConnectionStarted) return; 
+      const { isLoading: activeLoading, isLoadError: activeError, isConnectionStarted: activeStarted } = stateRef.current;
+      
+      // スタート前、ロード中、エラー時はイベントを完全にスルーするが、リスナー自体は破棄しない
+      if (activeLoading || activeError || !activeStarted) return; 
 
       const keysToPrevent = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '];
       if (keysToPrevent.includes(e.key)) {
         e.preventDefault(); 
       }
 
-      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') movePlayer(0, -1);
-      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') movePlayer(0, 1);
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') movePlayer(-1, 0);
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') movePlayer(1, 0);
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') movePlayerRef(0, -1);
+      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') movePlayerRef(0, 1);
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') movePlayerRef(-1, 0);
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') movePlayerRef(1, 0);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [player, dungeon, allFound, objects, isLoading, isLoadError, isConnectionStarted]);
+  }, []); // 依存配列なし。マウント時の一回のみ。
 
-  // 階層読み込み完了後に最外枠のコンテナ要素へフォーカスを当てる (キー入力を確実に即時受け付ける)
+  // 階層読み込み完了後にウィンドウへフォーカスを強制するエフェクト (ReactのDOM描画完了を待つため50ms遅延)
   useEffect(() => {
     if (isConnectionStarted && !isLoading && !isLoadError) {
       const timer = setTimeout(() => {
@@ -598,7 +626,7 @@ export default function MemoryRPG() {
           display: 'flex',
           flexDirection: 'column'
         }}>
-          {/* HTML ルート宣言のダミー */}
+          {/* HTML ルート宣言 of ダミー */}
           <div style={{ color: '#5f6368', marginBottom: '4px' }}>&lt;!DOCTYPE html&gt;</div>
           <div style={{ color: '#881280', marginBottom: '2px' }}>&lt;<span style={{ color: '#1a73e8' }}>html</span>&gt;</div>
           <div style={{ color: '#881280', paddingLeft: '15px', marginBottom: '2px' }}>&lt;<span style={{ color: '#1a73e8' }}>head</span>&gt;&lt;/<span style={{ color: '#1a73e8' }}>head</span>&gt;</div>
@@ -665,7 +693,7 @@ export default function MemoryRPG() {
               paddingLeft: '30px',
               display: 'flex',
               flexDirection: 'column',
-              fontFamily: 'Consolas, monospace',
+              fontFamily: "Consolas, 'Courier New', monospace",
               fontSize: '11px',
               lineHeight: '1.1'
             }}>
