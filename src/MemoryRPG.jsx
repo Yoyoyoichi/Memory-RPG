@@ -158,7 +158,7 @@ const generateSimpleDungeon = (floor, storyObjects, npcData) => {
     grid[npcObj.y][npcObj.x] = { char: 'N', type: 'npc', id: 'N' };
   }
 
-  // 8. 回収オブジェクトを部屋の重心に1部屋最大1つずつ配置
+  // 8. 回収オブジェクトを部屋の重心に1部屋最大 1つずつ配置
   const objects = [];
   const chars = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
   
@@ -205,10 +205,11 @@ export default function MemoryRPG() {
   const [allFound, setAllFound] = useState(false);
   const [systemLogs, setSystemLogs] = useState([]); 
   const [recoveredTexts, setRecoveredTexts] = useState([]); 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // 初期表示はローディングせず待機
   const [isLoadError, setIsLoadError] = useState(false); 
   const [debugLog, setDebugLog] = useState('');
-  const [retryTrigger, setRetryTrigger] = useState(0); 
+  const [retryTrigger, setRetryTrigger] = useState(0);
+  const [isConnectionStarted, setIsConnectionStarted] = useState(false); // 通信開始ボタン制御フラグ
 
   const apiKeyInfo = localStorage.getItem('GEMINI_API_KEY') 
     ? 'ACTIVE (LocalStorage)' 
@@ -216,6 +217,9 @@ export default function MemoryRPG() {
 
   // 階層読み込み時の処理
   useEffect(() => {
+    // 接続開始フラグが有効になるまでは通信を一切行わない
+    if (!isConnectionStarted) return;
+
     let active = true;
     const fetchStoryAndBuildDungeon = async () => {
       setIsLoading(true);
@@ -285,7 +289,7 @@ export default function MemoryRPG() {
     return () => {
       active = false;
     };
-  }, [floor, retryTrigger]);
+  }, [floor, retryTrigger, isConnectionStarted]);
 
   // すべて見つかったか監視
   useEffect(() => {
@@ -430,7 +434,7 @@ export default function MemoryRPG() {
   // キーボードイベントハンドラ
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (isLoading || isLoadError) return; 
+      if (isLoading || isLoadError || !isConnectionStarted) return; 
 
       const keysToPrevent = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '];
       if (keysToPrevent.includes(e.key)) {
@@ -444,45 +448,48 @@ export default function MemoryRPG() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [player, dungeon, allFound, objects, isLoading, isLoadError]);
+  }, [player, dungeon, allFound, objects, isLoading, isLoadError, isConnectionStarted]);
 
   const handleRetry = () => {
     setRetryTrigger(prev => prev + 1);
   };
 
-  if (!dungeon) return <div style={{ padding: '50px', textAlign: 'center', fontFamily: 'monospace', color: '#6b7280' }}>Loading DevTools inspector module...</div>;
+  const handleStartConnection = () => {
+    setIsConnectionStarted(true);
+  };
 
-  const currentRows = dungeon.length;
-  const currentCols = dungeon[0].length;
+  const currentRows = dungeon ? dungeon.length : 0;
+  const currentCols = dungeon ? dungeon[0].length : 0;
 
   // プレイヤーを中心に縦横半径15マスの視野グリッドを切り出す
   const renderGrid = [];
-  for (let r = player.y - VIEWPORT_RADIUS; r <= player.y + VIEWPORT_RADIUS; r++) {
-    const row = [];
-    for (let c = player.x - VIEWPORT_RADIUS; c <= player.x + VIEWPORT_RADIUS; c++) {
-      if (r < 0 || r >= currentRows || c < 0 || c >= currentCols) {
-        row.push({ char: ' ', type: 'void' });
-        continue;
-      }
+  if (dungeon) {
+    for (let r = player.y - VIEWPORT_RADIUS; r <= player.y + VIEWPORT_RADIUS; r++) {
+      const row = [];
+      for (let c = player.x - VIEWPORT_RADIUS; c <= player.x + VIEWPORT_RADIUS; c++) {
+        if (r < 0 || r >= currentRows || c < 0 || c >= currentCols) {
+          row.push({ char: ' ', type: 'void' });
+          continue;
+        }
 
-      const isExplored = exploredTiles[`${c},${r}`];
-      if (!isExplored) {
-        row.push({ char: ' ', type: 'fog' });
-        continue;
-      }
+        const isExplored = exploredTiles[`${c},${r}`];
+        if (!isExplored) {
+          row.push({ char: ' ', type: 'fog' });
+          continue;
+        }
 
-      let tile = dungeon[r][c];
-      if (player.x === c && player.y === r) {
-        row.push({ char: '@', type: 'player' });
-      } else {
-        row.push(tile);
+        let tile = dungeon[r][c];
+        if (player.x === c && player.y === r) {
+          row.push({ char: '@', type: 'player' });
+        } else {
+          row.push(tile);
+        }
       }
+      renderGrid.push(row);
     }
-    renderGrid.push(row);
   }
 
   // HTMLコード壁の表示用文字を生成するためのジェネレータ
-  // "<div class=\"wall-node\">" などを順に繰り返して敷き詰める
   const htmlWallString = '<div class="wall-node">';
   let wallCharPointer = 0;
   const getNextWallChar = () => {
@@ -566,7 +573,9 @@ export default function MemoryRPG() {
           borderRight: '1px solid #dadce0',
           backgroundColor: '#ffffff',
           boxSizing: 'border-box',
-          padding: '10px'
+          padding: '10px',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
           {/* HTML ルート宣言のダミー */}
           <div style={{ color: '#5f6368', marginBottom: '4px' }}>&lt;!DOCTYPE html&gt;</div>
@@ -574,82 +583,137 @@ export default function MemoryRPG() {
           <div style={{ color: '#881280', paddingLeft: '15px', marginBottom: '2px' }}>&lt;<span style={{ color: '#1a73e8' }}>head</span>&gt;&lt;/<span style={{ color: '#1a73e8' }}>head</span>&gt;</div>
           <div style={{ color: '#881280', paddingLeft: '15px', marginBottom: '5px' }}>&lt;<span style={{ color: '#1a73e8' }}>body</span>&gt;</div>
 
-          {/* 31x31 マップを DOMツリー（グリッド状の要素）に擬態して描画 */}
-          <div style={{
-            paddingLeft: '30px',
-            display: 'flex',
-            flexDirection: 'column',
-            fontFamily: 'Consolas, monospace',
-            fontSize: '11px',
-            lineHeight: '1.1'
-          }}>
-            {renderGrid.map((row, rIndex) => (
-              <div key={rIndex} style={{ display: 'flex', height: '14px' }}>
-                {row.map((cell, cIndex) => {
-                  let char = '';
-                  let color = '#881280'; 
-                  let bg = 'transparent';
-                  let isString = false;
-
-                  if (cell.type === 'player') {
-                    char = '== $0';
-                    color = '#ffffff';
-                    bg = '#1a73e8'; // アクティブ要素の青ハイライト
-                  } else if (cell.type === 'floor') {
-                    char = '·'; // 床ドットはごく薄い点（コードのインデントを表現）
-                    color = '#cbd5e1';
-                  } else if (cell.type === 'stairs') {
-                    char = '&lt;a&gt;'; // 階段はリンクタグ
-                    color = '#1155cc';
-                  } else if (cell.type === 'object') {
-                    const found = objects.find(o => o.id === cell.id)?.found;
-                    char = cell.id; // 元の記号（A, B, C...）に戻す
-                    color = found ? '#1e7e34' : '#c53929';
-                  } else if (cell.type === 'npc') {
-                    char = 'N'; // 元の記号（N）に戻す
-                    color = '#7c3aed';
-                  } else if (cell.type === 'wall') {
-                    // 壁は "<div class=\"wall-node\">" を文字単位で敷き詰める
-                    const rawChar = getNextWallChar();
-                    char = rawChar === '<' ? '&lt;' : rawChar === '>' ? '&gt;' : rawChar;
-                    
-                    // HTMLタグの配色（ブラケット・タグ名は紫、属性名は青、値はオレンジ）
-                    if (rawChar === '<' || rawChar === '>' || rawChar === '/' || htmlWallString.substring(wallCharPointer - 1, wallCharPointer + 3).includes('div')) {
-                      color = '#881280'; // 紫
-                    } else if (htmlWallString.substring(wallCharPointer - 1, wallCharPointer + 5).includes('class')) {
-                      color = '#1a73e8'; // 青
-                    } else {
-                      color = '#c80000'; // オレンジ
-                    }
-                  } else if (cell.type === 'fog' || cell.type === 'void') {
-                    char = '\u00A0'; // フォグは空白
-                  }
-
-                  return (
-                    <span
-                      key={cIndex}
-                      dangerouslySetInnerHTML={{ __html: char }}
-                      style={{
-                        width: '16px',
-                        height: '14px',
-                        textAlign: 'center',
-                        display: 'inline-block',
-                        fontSize: '10px',
-                        color,
-                        backgroundColor: bg,
-                        overflow: 'hidden',
-                        textOverflow: 'clip',
-                        whiteSpace: 'nowrap',
-                        fontWeight: cell.type === 'player' || cell.type === 'object' ? 'bold' : 'normal',
-                        cursor: 'default',
-                        userSelect: 'none'
-                      }}
-                    />
-                  );
-                })}
+          {/* 31x31 マップエリアの表示分岐 */}
+          {!isConnectionStarted ? (
+            // 通信開始前のプレースホルダー（開始ボタンを表示）
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '430px',
+              border: '1px dashed #dadce0',
+              margin: '0 15px',
+              backgroundColor: '#fafafa',
+              borderRadius: '4px',
+              padding: '20px',
+              textAlign: 'center'
+            }}>
+              <div style={{ color: '#5f6368', fontSize: '13px', fontWeight: 'bold', marginBottom: '10px' }}>[ CONNECT DISCONNECTED ]</div>
+              <div style={{ color: '#797775', fontSize: '11.5px', marginBottom: '25px', lineHeight: '1.45' }}>
+                Memory log synchronizer interface is ready.<br />
+                Press start button to connect and mount active DOM tree sectors.
               </div>
-            ))}
-          </div>
+              <button 
+                onClick={handleStartConnection} 
+                style={{
+                  backgroundColor: '#1a73e8',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '8px 18px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                  fontFamily: 'monospace'
+                }}
+              >
+                [ Start Recovery Console ]
+              </button>
+            </div>
+          ) : isLoading ? (
+            // ローディング画面
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '430px',
+              color: '#5f6368',
+              gap: '12px'
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: 'bold' }}>[ SYSTEM: ACCESSING ARCHIVE... ]</div>
+              <div style={{ fontSize: '11px' }}>Locating physical disk sectors. Please wait.</div>
+            </div>
+          ) : (
+            // 31x31 マップを DOMツリー（グリッド状の要素）に擬態して描画
+            <div style={{
+              paddingLeft: '30px',
+              display: 'flex',
+              flexDirection: 'column',
+              fontFamily: 'Consolas, monospace',
+              fontSize: '11px',
+              lineHeight: '1.1'
+            }}>
+              {renderGrid.map((row, rIndex) => (
+                <div key={rIndex} style={{ display: 'flex', height: '14px' }}>
+                  {row.map((cell, cIndex) => {
+                    let char = '';
+                    let color = '#881280'; 
+                    let bg = 'transparent';
+
+                    if (cell.type === 'player') {
+                      char = '== $0';
+                      color = '#ffffff';
+                      bg = '#1a73e8'; // アクティブ要素の青ハイライト
+                    } else if (cell.type === 'floor') {
+                      char = '·'; // 床ドットはごく薄い点（コードのインデントを表現）
+                      color = '#cbd5e1';
+                    } else if (cell.type === 'stairs') {
+                      char = '&lt;a&gt;'; // 階段はリンクタグ
+                      color = '#1155cc';
+                    } else if (cell.type === 'object') {
+                      const found = objects.find(o => o.id === cell.id)?.found;
+                      char = found ? `&lt;!--${cell.id}--&gt;` : cell.id; // 元のA, B, C記号
+                      color = found ? '#1e7e34' : '#c53929';
+                    } else if (cell.type === 'npc') {
+                      char = 'N'; // 元のN記号
+                      color = '#7c3aed';
+                    } else if (cell.type === 'wall') {
+                      const rawChar = getNextWallChar();
+                      char = rawChar === '<' ? '&lt;' : rawChar === '>' ? '&gt;' : rawChar;
+                      
+                      // HTMLタグの配色（ブラケット・タグ名は紫、属性名は青、値はオレンジ）
+                      if (rawChar === '<' || rawChar === '>' || rawChar === '/' || htmlWallString.substring(wallCharPointer - 1, wallCharPointer + 3).includes('div')) {
+                        color = '#881280'; 
+                      } else if (htmlWallString.substring(wallCharPointer - 1, wallCharPointer + 5).includes('class')) {
+                        color = '#1a73e8'; 
+                      } else {
+                        color = '#c80000'; 
+                      }
+                    } else if (cell.type === 'fog' || cell.type === 'void') {
+                      char = '\u00A0'; 
+                    }
+
+                    return (
+                      <span
+                        key={cIndex}
+                        dangerouslySetInnerHTML={{ __html: char }}
+                        style={{
+                          width: '16px',
+                          height: '14px',
+                          textAlign: 'center',
+                          display: 'inline-block',
+                          fontSize: '10px',
+                          color,
+                          backgroundColor: bg,
+                          overflow: 'hidden',
+                          textOverflow: 'clip',
+                          whiteSpace: 'nowrap',
+                          fontWeight: cell.type === 'player' || cell.type === 'object' ? 'bold' : 'normal',
+                          cursor: 'default',
+                          userSelect: 'none'
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
 
           <div style={{ color: '#881280', paddingLeft: '15px', marginTop: '5px' }}>&lt;/<span style={{ color: '#1a73e8' }}>body</span>&gt;</div>
           <div style={{ color: '#881280' }}>&lt;/<span style={{ color: '#1a73e8' }}>html</span>&gt;</div>
@@ -763,7 +827,11 @@ export default function MemoryRPG() {
           lineHeight: '1.45',
           backgroundColor: '#ffffff'
         }}>
-          {recoveredTexts.length === 0 ? (
+          {!isConnectionStarted ? (
+            <div style={{ color: '#797775', fontStyle: 'italic' }}>
+              &gt; Console system is idle. Awaiting recovery interface activation...
+            </div>
+          ) : recoveredTexts.length === 0 ? (
             <div style={{ color: '#797775', fontStyle: 'italic' }}>
               &gt; No active stream buffers. Decode unallocated memory nodes (A-{String.fromCharCode(64 + objects.length)}) to print log payloads.
             </div>
