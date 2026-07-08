@@ -450,10 +450,13 @@ export default function MemoryRPG() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [player, dungeon, allFound, objects, isLoading, isLoadError, isConnectionStarted]);
 
-  // 階層読み込み完了後にウィンドウへフォーカスを強制するエフェクト (キーボード入力がすぐに効くように保証)
+  // 階層読み込み完了後にウィンドウへフォーカスを強制するエフェクト (ReactのDOM描画完了を待つため50ms遅延)
   useEffect(() => {
     if (isConnectionStarted && !isLoading && !isLoadError) {
-      window.focus();
+      const timer = setTimeout(() => {
+        window.focus();
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [isLoading, isConnectionStarted, isLoadError]);
 
