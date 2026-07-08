@@ -450,11 +450,12 @@ export default function MemoryRPG() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [player, dungeon, allFound, objects, isLoading, isLoadError, isConnectionStarted]);
 
-  // 階層読み込み完了後にウィンドウへフォーカスを強制するエフェクト (ReactのDOM描画完了を待つため50ms遅延)
+  // 階層読み込み完了後に最外枠のコンテナ要素へフォーカスを当てる (キー入力を確実に即時受け付ける)
   useEffect(() => {
     if (isConnectionStarted && !isLoading && !isLoadError) {
       const timer = setTimeout(() => {
-        window.focus();
+        const container = document.getElementById('devtools-container');
+        if (container) container.focus();
       }, 50);
       return () => clearTimeout(timer);
     }
@@ -466,9 +467,10 @@ export default function MemoryRPG() {
 
   const handleStartConnection = () => {
     setIsConnectionStarted(true);
-    // ReactがDOMを描画し、スタートボタンが消滅した直後に確実にフォーカスを当てるためのディレイ
+    // ボタン消滅後に最外枠のコンテナへフォーカスを当てる
     setTimeout(() => {
-      window.focus();
+      const container = document.getElementById('devtools-container');
+      if (container) container.focus();
     }, 50);
   };
 
@@ -513,21 +515,26 @@ export default function MemoryRPG() {
   };
 
   return (
-    <div style={{
-      width: '100vw',
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      backgroundColor: '#ffffff',
-      color: '#202124',
-      fontFamily: "Consolas, 'Courier New', monospace, sans-serif",
-      fontSize: '12px',
-      overflow: 'hidden',
-      boxSizing: 'border-box'
-    }}>
+    <div 
+      id="devtools-container"
+      tabIndex={0}
+      style={{
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        backgroundColor: '#ffffff',
+        color: '#202124',
+        fontFamily: "Consolas, 'Courier New', monospace, sans-serif",
+        fontSize: '12px',
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+        outline: 'none' // フォーカス時の外枠黒線を隠す
+      }}
+    >
       {/* 1. DevTools ヘッダー通知バー */}
       <div style={{
         backgroundColor: '#f1f3f4',
