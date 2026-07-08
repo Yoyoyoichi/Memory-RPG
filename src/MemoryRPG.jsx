@@ -481,153 +481,296 @@ export default function MemoryRPG() {
     renderGrid.push(row);
   }
 
+  // Excelのカラム名A~AEを生成するヘルパー
+  const generateColLabel = (index) => {
+    let label = '';
+    let temp = index;
+    while (temp >= 0) {
+      label = String.fromCharCode((temp % 26) + 65) + label;
+      temp = Math.floor(temp / 26) - 1;
+    }
+    return label;
+  };
+
+  const colCount = VIEWPORT_RADIUS * 2 + 1; // 31列
+
   return (
-    <div className="memory-rpg-container" style={{ padding: '40px 20px', fontFamily: 'monospace', backgroundColor: '#f3f4f6', color: '#1f2937', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-      {/* 3カラム横並びコンテナ (左から順に: 1. マップ, 2. タイムライン, 3. サルベージログ) */}
-      <div style={{ maxWidth: '1400px', width: '100%', display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-        
-        {/* カラム1: マップ表示エリア (左端・幅 520px 固定) */}
-        <div style={{ flex: '0 0 520px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div>
-            <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#4b5563', letterSpacing: '0.5px' }}>Memory Log Recovery Console v1.0.8</h1>
-            <div style={{ color: '#9ca3af', fontSize: '12px', marginBottom: '5px' }}>Sector: 0x0{floor} (Buffer Depth: {floor * 100}m)</div>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px', backgroundColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', width: '100%', boxSizing: 'border-box', opacity: isLoadError ? 0.45 : 1 }}>
-            {isLoading ? (
-              <div style={{ textAlign: 'center', color: '#6b7280', display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '340px', justifyContent: 'center' }}>
-                <div style={{ fontSize: '15px', fontWeight: 'bold' }}>[ SYSTEM: ACCESSING ARCHIVE... ]</div>
-                <div style={{ fontSize: '12px' }}>Locating physical disk sectors. Please wait.</div>
-              </div>
-            ) : (
-              <div style={{ fontFamily: 'monospace', fontSize: '15px', lineHeight: '1.2', letterSpacing: '1px', display: 'block', margin: '0 auto' }}>
-                {renderGrid.map((row, rIndex) => (
-                  <div key={rIndex} style={{ display: 'flex' }}>
-                    {row.map((cell, cIndex) => {
-                      let char = cell.char;
-                      let color = '#9ca3af'; 
+    <div style={{
+      width: '100vw',
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      backgroundColor: '#ffffff',
+      color: '#323130',
+      fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif",
+      fontSize: '12.5px',
+      overflow: 'hidden',
+      boxSizing: 'border-box'
+    }}>
+      {/* 1. Excel 緑のタイトルバー */}
+      <div style={{
+        backgroundColor: '#107c41',
+        color: '#ffffff',
+        height: '32px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'between',
+        padding: '0 12px',
+        fontSize: '12px',
+        fontWeight: 600,
+        userSelect: 'none',
+        flexShrink: 0
+      }}>
+        <span>Weekly_Report_Draft.xlsx - Excel</span>
+        <div style={{ fontSize: '11px', opacity: 0.8, marginLeft: 'auto' }}>☁️ Saved to Drive</div>
+      </div>
 
-                      if (cell.type === 'player') {
-                        char = '@';
-                        color = '#18181b'; 
-                      } else if (cell.type === 'floor') {
-                        color = '#cbd5e1'; 
-                        char = '.';
-                      } else if (cell.type === 'stairs') {
-                        color = '#d97706'; 
-                      } else if (cell.type === 'object') {
-                        const found = objects.find(o => o.id === cell.id)?.found;
-                        color = found ? '#16a34a' : '#dc2626'; 
-                      } else if (cell.type === 'npc') {
-                        color = '#7c3aed'; 
-                      } else if (cell.type === 'fog' || cell.type === 'void') {
-                        char = '\u00A0'; 
-                      }
+      {/* 2. Ribbon tabs */}
+      <div style={{
+        backgroundColor: '#107c41',
+        color: '#ffffff',
+        display: 'flex',
+        paddingLeft: '20px',
+        fontSize: '12px',
+        borderBottom: '1px solid #0b5930',
+        flexShrink: 0,
+        userSelect: 'none'
+      }}>
+        <div style={{ padding: '6px 12px', cursor: 'pointer', backgroundColor: '#ffffff', color: '#107c41', fontWeight: 'bold', borderTopLeftRadius: '4px', borderTopRightRadius: '4px' }}>Home</div>
+        <div style={{ padding: '6px 12px', cursor: 'pointer', opacity: 0.85 }}>Insert</div>
+        <div style={{ padding: '6px 12px', cursor: 'pointer', opacity: 0.85 }}>Page Layout</div>
+        <div style={{ padding: '6px 12px', cursor: 'pointer', opacity: 0.85 }}>Data</div>
+        <div style={{ padding: '6px 12px', cursor: 'pointer', opacity: 0.85 }}>View</div>
+      </div>
 
-                      return (
-                        <span 
-                          key={cIndex} 
-                          style={{ 
-                            color, 
-                            width: '15px', 
-                            height: '15px', 
-                            lineHeight: '15px', 
-                            textAlign: 'center', 
-                            display: 'inline-block', 
-                            userSelect: 'none', 
-                            fontWeight: cell.type === 'player' || cell.type === 'object' || cell.type === 'npc' ? 'bold' : 'normal',
-                            border: '1px solid #d1d5db', 
-                            boxSizing: 'border-box',
-                            backgroundColor: '#e5e7eb'
-                          }}
-                        >
-                          {char}
-                        </span>
-                      );
-                    })}
-                  </div>
+      {/* 3. Excel toolbar */}
+      <div style={{
+        backgroundColor: '#f3f2f1',
+        borderBottom: '1px solid #d1d1d1',
+        padding: '6px 12px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        userSelect: 'none',
+        flexShrink: 0
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRight: '1px solid #d1d1d1', paddingRight: '12px' }}>
+          <button style={{ background: 'none', border: '1px solid transparent', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#323130', borderRadius: '2px', cursor: 'pointer' }} onClick={handleRetry}>
+            🔄 Refresh Connection
+          </button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRight: '1px solid #d1d1d1', paddingRight: '12px' }}>
+          <select style={{ border: '1px solid #d1d1d1', background: '#ffffff', padding: '2px 6px', fontSize: '11px', outline: 'none' }} disabled>
+            <option>Arial (Oshii-AI)</option>
+          </select>
+          <span style={{ fontSize: '11px', color: '#797775' }}>Size: 13.5px</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontSize: '11.5px', color: '#107c41', fontWeight: 'bold' }}>⚡ Active Thread Running</span>
+        </div>
+      </div>
+
+      {/* 4. Excel formula bar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        borderBottom: '1px solid #d1d1d1',
+        backgroundColor: '#ffffff',
+        height: '28px',
+        flexShrink: 0
+      }}>
+        <div style={{ padding: '0 10px', fontWeight: 'bold', color: '#797775', borderRight: '1px solid #d1d1d1', userSelect: 'none', height: '100%', display: 'flex', alignHover: 'center', alignItems: 'center', fontStyle: 'italic' }}>fx</div>
+        <input 
+          type="text" 
+          readOnly
+          style={{ flex: 1, border: 'none', height: '100%', padding: '0 10px', outline: 'none', fontFamily: "'Consolas', monospace', monospace", fontSize: '13px', color: '#595959' }} 
+          value={`=RECOVERY_SECTOR(0x0${floor}, DEPTH=${floor*100}m, ACTIVE_COORDS=[${player.x},${player.y}], SYNC_PROGRESS=${objects.filter(o=>o.found).length}/${objects.length})`}
+        />
+      </div>
+
+      {/* 5. Main Spreadsheet Area */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        overflow: 'hidden',
+        backgroundColor: '#ffffff'
+      }}>
+        {/* 左側: マップグリッド (Excelシート再現) */}
+        <div style={{
+          flex: '0 0 auto',
+          overflow: 'auto',
+          backgroundColor: '#f3f2f1',
+          borderRight: '2px solid #d1d1d1',
+          boxSizing: 'border-box'
+        }}>
+          <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <thead>
+              <tr style={{ height: '22px' }}>
+                {/* 左上角の空セル */}
+                <th style={{ width: '40px', backgroundColor: '#f3f2f1', border: '1px solid #d1d1d1', zIndex: 2, position: 'sticky', top: 0, left: 0 }}></th>
+                {Array.from({ length: colCount }).map((_, cIdx) => (
+                  <th key={cIdx} style={{
+                    width: '18px',
+                    backgroundColor: '#f3f2f1',
+                    color: '#323130',
+                    fontWeight: 'normal',
+                    textAlign: 'center',
+                    fontSize: '11px',
+                    border: '1px solid #d1d1d1',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 1,
+                    userSelect: 'none'
+                  }}>
+                    {generateColLabel(cIdx)}
+                  </th>
                 ))}
-              </div>
-            )}
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {renderGrid.map((row, rIndex) => (
+                <tr key={rIndex} style={{ height: '18px' }}>
+                  {/* 行番号セル */}
+                  <td style={{
+                    width: '40px',
+                    backgroundColor: '#f3f2f1',
+                    color: '#595959',
+                    textAlign: 'center',
+                    fontSize: '11px',
+                    border: '1px solid #d1d1d1',
+                    position: 'sticky',
+                    left: 0,
+                    userSelect: 'none',
+                    fontWeight: 'normal'
+                  }}>
+                    {rIndex + 1}
+                  </td>
+                  {row.map((cell, cIndex) => {
+                    let char = cell.char;
+                    let color = '#a19f9d'; 
+                    let bg = '#ffffff'; 
 
-          {/* ステータスバッジリスト (マップのすぐ下) */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginTop: '5px' }}>
-            {observerNpc && (
-              <span style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '4px', border: '1px solid #ddd6fe', backgroundColor: '#f5f3ff', color: '#6d28d9', fontWeight: 'bold' }}>
-                👤 OBSERVER: {observerNpc.name}
-              </span>
-            )}
-            {objects.map(obj => (
-              <span key={obj.id} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '4px', border: '1px solid #e5e7eb', backgroundColor: obj.found ? '#ecfdf5' : '#fef2f2', color: obj.found ? '#047857' : '#b91c1c', fontWeight: 'bold' }}>
-                [{obj.id}] {obj.name}
-              </span>
-            ))}
-          </div>
+                    if (cell.type === 'player') {
+                      char = '@';
+                      color = '#18181b';
+                      bg = '#fff2cc'; // プレイヤー位置をExcel風イエローでハイライト
+                    } else if (cell.type === 'floor') {
+                      color = '#cbd5e1'; 
+                      char = '.';
+                    } else if (cell.type === 'stairs') {
+                      color = '#b45309'; 
+                      bg = '#ffe699'; // 階段マークを警告オレンジ背景に
+                    } else if (cell.type === 'object') {
+                      const found = objects.find(o => o.id === cell.id)?.found;
+                      color = found ? '#107c41' : '#a80000'; 
+                      bg = found ? '#e2f0d9' : '#fce4d6'; // 未取得は赤、既取得は緑でセル背景を分ける
+                    } else if (cell.type === 'npc') {
+                      color = '#5c2d91'; 
+                      bg = '#e4e2e2'; 
+                    } else if (cell.type === 'fog' || cell.type === 'void') {
+                      char = '\u00A0';
+                      bg = '#f3f2f1'; // 未開拓フォグはグレーの空セルにする
+                    }
 
-          {/* デバッグパネル (マップ下のステータスバッジの下) */}
-          <div style={{ border: '1px dashed #d1d5db', borderRadius: '8px', padding: '10px 12px', backgroundColor: '#f9fafb', fontSize: '11px', color: '#4b5563', flexShrink: 0, marginTop: '5px' }}>
-            <h4 style={{ margin: '0 0 4px 0', fontSize: '11px', fontWeight: 'bold', color: '#374151' }}>[ ENGINE DIAGNOSTICS ]</h4>
-            <div style={{ marginBottom: '4px' }}><strong>API LICENSE:</strong> {apiKeyInfo}</div>
-            {debugLog ? (
-              <div style={{ color: '#dc2626', backgroundColor: '#fee2e2', padding: '4px 6px', borderRadius: '4px', border: '1px solid #fecaca', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                <strong>Error Log:</strong><br />{debugLog}
-              </div>
-            ) : (
-              <div style={{ color: '#059669' }}>API STATUS: SECURE / STABLE</div>
-            )}
-          </div>
+                    return (
+                      <td 
+                        key={cIndex} 
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          textAlign: 'center',
+                          padding: 0,
+                          fontSize: '13.5px',
+                          fontFamily: 'monospace',
+                          color,
+                          backgroundColor: bg,
+                          border: '1px solid #e1dfdd',
+                          userSelect: 'none',
+                          fontWeight: cell.type === 'player' || cell.type === 'object' || cell.type === 'npc' ? 'bold' : 'normal'
+                        }}
+                      >
+                        {char}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        {/* カラム2: システムタイムライン (中央・幅 360px 固定) */}
-        <div style={{ flex: '0 0 360px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          {/* システム案内ログ（逆時系列） */}
-          <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '15px', backgroundColor: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '10px', height: 'calc(100vh - 170px)', overflowY: 'auto' }}>
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', borderBottom: '1px solid #f3f4f6', paddingBottom: '4px', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>--- RECOVERY TIMELINE (LATEST ON TOP) ---</div>
-            
-            {/* エラー時再接続ボタン */}
+        {/* 中央: SYSTEM TIMELINE ログ (幅 360px 固定) */}
+        <div style={{
+          flex: '0 0 380px',
+          display: 'flex',
+          flexDirection: 'column',
+          borderRight: '2px solid #d1d1d1',
+          boxSizing: 'border-box'
+        }}>
+          {/* テーブルヘッダー的な見出し */}
+          <div style={{
+            backgroundColor: '#f3f2f1',
+            borderBottom: '1px solid #d1d1d1',
+            padding: '6px 12px',
+            fontWeight: 'bold',
+            fontSize: '11px',
+            color: '#595959',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            RECOVERY_LOG_BUFFER
+          </div>
+          
+          {/* スクロールする中身 */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '12px',
+            backgroundColor: '#ffffff'
+          }}>
             {isLoadError && (
-              <div style={{ padding: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', flexShrink: 0 }}>
-                <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 'bold' }}>⚠️ Linkage drop detected.</span>
-                <button 
-                  onClick={handleRetry} 
-                  style={{ padding: '6px 12px', fontSize: '11.5px', fontFamily: 'monospace', fontWeight: 'bold', backgroundColor: '#dc2626', color: '#ffffff', border: 'none', borderRadius: '4px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
-                >
-                  [ Force Reconnect ]
+              <div style={{ padding: '8px 10px', backgroundColor: '#fde7e9', border: '1px solid #e00b1c', borderRadius: '2px', color: '#a80000', fontSize: '11.5px', marginBottom: '10px' }}>
+                <strong>CRITICAL CONNECTION DROPPED</strong><br />
+                <button onClick={handleRetry} style={{ marginTop: '6px', padding: '3px 8px', fontSize: '10.5px', backgroundColor: '#a80000', color: '#ffffff', border: 'none', cursor: 'pointer' }}>
+                  Force Reconnect
                 </button>
               </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'monospace', fontSize: '11.5px' }}>
               {systemLogs.map((log, idx) => {
                 if (log.type === 'system') {
                   return (
-                    <div key={idx} style={{ color: '#2563eb', fontSize: '12px', lineHeight: '1.4' }}>
-                      ⚙️ [SYS_DAEMON] {log.text}
+                    <div key={idx} style={{ color: '#005a9e', borderLeft: '3px solid #0078d4', paddingLeft: '8px', lineHeight: '1.4' }}>
+                      [SYS_DAEMON] {log.text}
                     </div>
                   );
                 } else if (log.type === 'success') {
                   return (
-                    <div key={idx} style={{ color: '#16a34a', fontSize: '12px', fontWeight: 'bold', lineHeight: '1.4', padding: '6px', backgroundColor: '#f0fdf4', borderRadius: '4px', border: '1px solid #d1fae5' }}>
-                      🔓 [SYS_DAEMON] {log.text}
+                    <div key={idx} style={{ color: '#107c41', borderLeft: '3px solid #107c41', paddingLeft: '8px', lineHeight: '1.4', fontWeight: 'bold', backgroundColor: '#f3faf5', padding: '4px 6px' }}>
+                      [SYS_OK] {log.text}
                     </div>
                   );
                 } else if (log.type === 'error') {
                   return (
-                    <div key={idx} style={{ color: '#dc2626', fontSize: '12px', lineHeight: '1.4', padding: '6px', backgroundColor: '#fef2f2', borderRadius: '4px', border: '1px solid #fee2e2' }}>
-                      ⚠️ [SYS_CRITICAL_ERR] {log.text}
+                    <div key={idx} style={{ color: '#a80000', borderLeft: '3px solid #a80000', paddingLeft: '8px', lineHeight: '1.4', backgroundColor: '#fde7e9', padding: '4px 6px' }}>
+                      [SYS_ERR] {log.text}
                     </div>
                   );
                 } else if (log.type === 'npc_dialog') {
                   return (
-                    <div key={idx} style={{ padding: '8px 10px', backgroundColor: '#faf5ff', borderLeft: '3px solid #7c3aed', borderRadius: '0 4px 4px 0', fontSize: '12.5px', color: '#5b21b6', lineHeight: '1.4' }}>
-                      <strong style={{ fontSize: '11px', color: '#7c3aed' }}>💬 [{log.name}]:</strong><br />
+                    <div key={idx} style={{ padding: '6px 8px', backgroundColor: '#f3f2f1', borderLeft: '3px solid #5c2d91', fontSize: '12px', color: '#323130', lineHeight: '1.4' }}>
+                      <strong style={{ color: '#5c2d91' }}>💬 [{log.name}]:</strong><br />
                       {log.text}
                     </div>
                   );
                 } else {
                   return (
-                    <div key={idx} style={{ padding: '8px 10px', backgroundColor: '#f9fafb', borderLeft: '3px solid #3b82f6', borderRadius: '0 4px 4px 0', fontSize: '12.5px', color: '#374151', lineHeight: '1.4' }}>
-                      <strong style={{ fontSize: '11px', color: '#3b82f6' }}>[{log.name}] data payload:</strong><br />
+                    <div key={idx} style={{ padding: '6px 8px', backgroundColor: '#faf9f8', borderLeft: '3px solid #0078d4', fontSize: '12px', color: '#323130', lineHeight: '1.4' }}>
+                      <strong style={{ color: '#0078d4' }}>[{log.name}] payload:</strong><br />
                       {log.text}
                     </div>
                   );
@@ -637,32 +780,90 @@ export default function MemoryRPG() {
           </div>
         </div>
 
-        {/* カラム3: サルベージログ (右端・残り幅すべて / flex: 1) */}
-        <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', gap: '15px', minWidth: '400px' }}>
-          {/* サルベージログ */}
-          <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '20px 25px', backgroundColor: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '15px', height: 'calc(100vh - 170px)', overflowY: 'auto' }}>
-            <h3 style={{ margin: '0', borderBottom: '1px solid #f3f4f6', paddingBottom: '6px', fontSize: '13px', fontWeight: 'bold', color: '#6b7280', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>--- DECODED STREAM BUFFER (RAW LOG) ---</h3>
+        {/* 右側: デコードされたストリームバッファ (Excelテーブル風リスト) */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: '#ffffff'
+        }}>
+          {/* テーブルヘッダーの見出し */}
+          <div style={{
+            backgroundColor: '#f3f2f1',
+            borderBottom: '1px solid #d1d1d1',
+            padding: '6px 12px',
+            fontWeight: 'bold',
+            fontSize: '11px',
+            color: '#595959',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            DECODED_DATA_SHEET
+          </div>
+
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '15px'
+          }}>
             {recoveredTexts.length === 0 ? (
-              <div style={{ color: '#9ca3af', fontSize: '13.5px', fontStyle: 'italic', textAlign: 'center', marginTop: '20px' }}>
-                Buffer empty. Scan allocating nodes to stream recovered data blocks.
+              <div style={{ color: '#797775', fontSize: '12px', fontStyle: 'italic', textAlign: 'center', marginTop: '40px' }}>
+                Unallocated memory space. Extract A-{String.fromCharCode(64 + objects.length)} nodes to decode raw logs.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                {recoveredTexts.map((item, index) => (
-                  <div key={index} style={{ borderLeft: '2px solid #3b82f6', paddingLeft: '12px' }}>
-                    <div style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 'bold', marginBottom: '2px' }}>
-                      [{item.name}] (Offset {item.count}/{objects.length})
-                    </div>
-                    <p style={{ margin: 0, lineHeight: '1.55', fontSize: '13.5px', color: '#1f2937', whiteSpace: 'pre-wrap' }}>
-                      {item.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '15%', backgroundColor: '#f3f2f1', border: '1px solid #d1d1d1', padding: '6px', fontWeight: 'bold' }}>BLOCK_ID</th>
+                    <th style={{ width: '15%', backgroundColor: '#f3f2f1', border: '1px solid #d1d1d1', padding: '6px', fontWeight: 'bold' }}>OFFSET</th>
+                    <th style={{ width: '70%', backgroundColor: '#f3f2f1', border: '1px solid #d1d1d1', padding: '6px', fontWeight: 'bold' }}>RAW_TEXT_STREAM</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recoveredTexts.map((item, index) => (
+                    <tr key={index}>
+                      <td style={{ border: '1px solid #e1dfdd', padding: '8px', fontWeight: 'bold', color: '#107c41', backgroundColor: '#f3faf5' }}>
+                        {item.name}
+                      </td>
+                      <td style={{ border: '1px solid #e1dfdd', padding: '8px', textAlign: 'center', color: '#595959' }}>
+                        {item.count}/{objects.length}
+                      </td>
+                      <td style={{ border: '1px solid #e1dfdd', padding: '8px', lineHeight: '1.45', whiteSpace: 'pre-wrap', color: '#323130' }}>
+                        {item.text}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </div>
 
+      </div>
+
+      {/* 6. Excelの下部ステータスバー */}
+      <div style={{
+        height: '24px',
+        backgroundColor: '#107c41',
+        color: '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 12px',
+        fontSize: '11px',
+        justifyContent: 'space-between',
+        userSelect: 'none',
+        flexShrink: 0
+      }}>
+        <div style={{ display: 'flex', gap: '15px' }}>
+          <span>Ready</span>
+          <span>|</span>
+          <span>Average: 0.0825</span>
+          <span>|</span>
+          <span>Sum: {objects.filter(o=>o.found).length}</span>
+        </div>
+        <div>
+          <span>Sheet1</span>
+        </div>
       </div>
     </div>
   );
