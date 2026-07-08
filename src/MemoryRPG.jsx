@@ -450,12 +450,20 @@ export default function MemoryRPG() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [player, dungeon, allFound, objects, isLoading, isLoadError, isConnectionStarted]);
 
+  // 階層読み込み完了後にウィンドウへフォーカスを強制するエフェクト (キーボード入力がすぐに効くように保証)
+  useEffect(() => {
+    if (isConnectionStarted && !isLoading && !isLoadError) {
+      window.focus();
+    }
+  }, [isLoading, isConnectionStarted, isLoadError]);
+
   const handleRetry = () => {
     setRetryTrigger(prev => prev + 1);
   };
 
   const handleStartConnection = () => {
     setIsConnectionStarted(true);
+    window.focus(); // ボタンクリック直後にフォーカスをウィンドウへ奪う
   };
 
   const currentRows = dungeon ? dungeon.length : 0;
