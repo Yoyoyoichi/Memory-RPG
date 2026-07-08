@@ -21,7 +21,7 @@ export const generateFloorStory = async (floorNumber) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = `あなたはダークファンタジーRPG of ゲームマスターです。プレイヤーが「第${floorNumber}階層」に到達しました。情景描写をJSONで出力してください。`;
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -40,7 +40,7 @@ export const generateMemoryFloorStory = async (floorNumber, seed = "default-seed
 
   try {
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-1.5-flash",
       generationConfig: { 
         responseMimeType: "application/json",
         temperature: 0.95
