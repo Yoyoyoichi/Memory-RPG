@@ -450,7 +450,7 @@ export default function MemoryRPG() {
     setRetryTrigger(prev => prev + 1);
   };
 
-  if (!dungeon) return <div style={{ padding: '50px', textAlign: 'center', fontFamily: 'monospace', color: '#6b7280' }}>Initializing database log connection...</div>;
+  if (!dungeon) return <div style={{ padding: '50px', textAlign: 'center', fontFamily: 'monospace', color: '#6b7280' }}>Loading DevTools inspector module...</div>;
 
   const currentRows = dungeon.length;
   const currentCols = dungeon[0].length;
@@ -481,19 +481,6 @@ export default function MemoryRPG() {
     renderGrid.push(row);
   }
 
-  // Excelのカラム名A~AEを生成するヘルパー
-  const generateColLabel = (index) => {
-    let label = '';
-    let temp = index;
-    while (temp >= 0) {
-      label = String.fromCharCode((temp % 26) + 65) + label;
-      temp = Math.floor(temp / 26) - 1;
-    }
-    return label;
-  };
-
-  const colCount = VIEWPORT_RADIUS * 2 + 1; // 31列
-
   return (
     <div style={{
       width: '100vw',
@@ -504,365 +491,296 @@ export default function MemoryRPG() {
       top: 0,
       left: 0,
       backgroundColor: '#ffffff',
-      color: '#323130',
-      fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif",
-      fontSize: '12.5px',
+      color: '#202124',
+      fontFamily: "Consolas, 'Courier New', monospace, sans-serif",
+      fontSize: '12px',
       overflow: 'hidden',
       boxSizing: 'border-box'
     }}>
-      {/* 1. Excel 緑のタイトルバー */}
+      {/* 1. DevTools ヘッダー通知バー */}
       <div style={{
-        backgroundColor: '#107c41',
-        color: '#ffffff',
-        height: '32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'between',
-        padding: '0 12px',
-        fontSize: '12px',
-        fontWeight: 600,
-        userSelect: 'none',
-        flexShrink: 0
-      }}>
-        <span>Weekly_Report_Draft.xlsx - Excel</span>
-        <div style={{ fontSize: '11px', opacity: 0.8, marginLeft: 'auto' }}>☁️ Saved to Drive</div>
-      </div>
-
-      {/* 2. Ribbon tabs */}
-      <div style={{
-        backgroundColor: '#107c41',
-        color: '#ffffff',
-        display: 'flex',
-        paddingLeft: '20px',
-        fontSize: '12px',
-        borderBottom: '1px solid #0b5930',
-        flexShrink: 0,
-        userSelect: 'none'
-      }}>
-        <div style={{ padding: '6px 12px', cursor: 'pointer', backgroundColor: '#ffffff', color: '#107c41', fontWeight: 'bold', borderTopLeftRadius: '4px', borderTopRightRadius: '4px' }}>Home</div>
-        <div style={{ padding: '6px 12px', cursor: 'pointer', opacity: 0.85 }}>Insert</div>
-        <div style={{ padding: '6px 12px', cursor: 'pointer', opacity: 0.85 }}>Page Layout</div>
-        <div style={{ padding: '6px 12px', cursor: 'pointer', opacity: 0.85 }}>Data</div>
-        <div style={{ padding: '6px 12px', cursor: 'pointer', opacity: 0.85 }}>View</div>
-      </div>
-
-      {/* 3. Excel toolbar */}
-      <div style={{
-        backgroundColor: '#f3f2f1',
-        borderBottom: '1px solid #d1d1d1',
+        backgroundColor: '#f1f3f4',
+        borderBottom: '1px solid #dadce0',
         padding: '6px 12px',
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
+        fontSize: '11px',
+        color: '#5f6368',
+        gap: '15px',
         userSelect: 'none',
         flexShrink: 0
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRight: '1px solid #d1d1d1', paddingRight: '12px' }}>
-          <button style={{ background: 'none', border: '1px solid transparent', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#323130', borderRadius: '2px', cursor: 'pointer' }} onClick={handleRetry}>
-            🔄 Refresh Connection
-          </button>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRight: '1px solid #d1d1d1', paddingRight: '12px' }}>
-          <select style={{ border: '1px solid #d1d1d1', background: '#ffffff', padding: '2px 6px', fontSize: '11px', outline: 'none' }} disabled>
-            <option>Arial (Oshii-AI)</option>
-          </select>
-          <span style={{ fontSize: '11px', color: '#797775' }}>Size: 13.5px</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '11.5px', color: '#107c41', fontWeight: 'bold' }}>⚡ Active Thread Running</span>
-        </div>
+        <span>💡 DevTools is now available in Japanese.</span>
+        <button style={{ backgroundColor: '#ffffff', border: '1px solid #dadce0', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', cursor: 'pointer', color: '#1a73e8' }}>Don't show again</button>
+        <button style={{ backgroundColor: '#1a73e8', border: 'none', borderRadius: '4px', padding: '3px 8px', fontSize: '11px', cursor: 'pointer', color: '#ffffff' }} onClick={handleRetry}>Switch to Japanese</button>
       </div>
 
-      {/* 4. Excel formula bar */}
+      {/* 2. DevTools メインタブバー */}
       <div style={{
+        backgroundColor: '#f1f3f4',
+        borderBottom: '1px solid #dadce0',
         display: 'flex',
-        alignItems: 'center',
-        borderBottom: '1px solid #d1d1d1',
-        backgroundColor: '#ffffff',
+        paddingLeft: '10px',
+        fontSize: '11px',
+        flexShrink: 0,
+        userSelect: 'none',
         height: '28px',
-        flexShrink: 0
+        alignItems: 'center'
       }}>
-        <div style={{ padding: '0 10px', fontWeight: 'bold', color: '#797775', borderRight: '1px solid #d1d1d1', userSelect: 'none', height: '100%', display: 'flex', alignHover: 'center', alignItems: 'center', fontStyle: 'italic' }}>fx</div>
-        <input 
-          type="text" 
-          readOnly
-          style={{ flex: 1, border: 'none', height: '100%', padding: '0 10px', outline: 'none', fontFamily: "'Consolas', monospace', monospace", fontSize: '13px', color: '#595959' }} 
-          value={`=RECOVERY_SECTOR(0x0${floor}, DEPTH=${floor*100}m, ACTIVE_COORDS=[${player.x},${player.y}], SYNC_PROGRESS=${objects.filter(o=>o.found).length}/${objects.length})`}
-        />
+        <div style={{ padding: '0 12px', height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', borderBottom: '2px solid #1a73e8', color: '#1a73e8', fontWeight: 'bold' }}>Elements</div>
+        <div style={{ padding: '0 12px', height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', color: '#5f6368' }}>Console</div>
+        <div style={{ padding: '0 12px', height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', color: '#5f6368' }}>Sources</div>
+        <div style={{ padding: '0 12px', height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', color: '#5f6368' }}>Network</div>
+        <div style={{ padding: '0 12px', height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', color: '#5f6368' }}>Performance</div>
+        <div style={{ padding: '0 12px', height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', color: '#5f6368' }}>Memory</div>
+        <div style={{ padding: '0 12px', height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', color: '#5f6368' }}>Application</div>
+        
+        {/* ステータス警告バッジ */}
+        <div style={{ marginLeft: 'auto', paddingRight: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ color: '#d93025', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '3px' }}>⚠️ 1</span>
+          <span style={{ color: '#5f6368' }}>Settings ⚙️</span>
+        </div>
       </div>
 
-      {/* 5. Main Spreadsheet Area */}
+      {/* 3. メイン検証エリア (左右分割) */}
       <div style={{
         flex: 1,
         display: 'flex',
-        overflow: 'hidden',
-        backgroundColor: '#ffffff'
+        overflow: 'hidden'
       }}>
-        {/* 左側: マップグリッド (Excelシート再現) */}
+        
+        {/* 左側: Elements パネル (HTML DOMツリーに擬態したマップ) */}
         <div style={{
-          flex: '0 0 auto',
+          flex: '0 0 540px',
           overflow: 'auto',
-          backgroundColor: '#f3f2f1',
-          borderRight: '2px solid #d1d1d1',
-          boxSizing: 'border-box'
+          borderRight: '1px solid #dadce0',
+          backgroundColor: '#ffffff',
+          boxSizing: 'border-box',
+          padding: '10px'
         }}>
-          <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-            <thead>
-              <tr style={{ height: '22px' }}>
-                {/* 左上角の空セル */}
-                <th style={{ width: '40px', backgroundColor: '#f3f2f1', border: '1px solid #d1d1d1', zIndex: 2, position: 'sticky', top: 0, left: 0 }}></th>
-                {Array.from({ length: colCount }).map((_, cIdx) => (
-                  <th key={cIdx} style={{
-                    width: '18px',
-                    backgroundColor: '#f3f2f1',
-                    color: '#323130',
-                    fontWeight: 'normal',
-                    textAlign: 'center',
-                    fontSize: '11px',
-                    border: '1px solid #d1d1d1',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 1,
-                    userSelect: 'none'
-                  }}>
-                    {generateColLabel(cIdx)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {renderGrid.map((row, rIndex) => (
-                <tr key={rIndex} style={{ height: '18px' }}>
-                  {/* 行番号セル */}
-                  <td style={{
-                    width: '40px',
-                    backgroundColor: '#f3f2f1',
-                    color: '#595959',
-                    textAlign: 'center',
-                    fontSize: '11px',
-                    border: '1px solid #d1d1d1',
-                    position: 'sticky',
-                    left: 0,
-                    userSelect: 'none',
-                    fontWeight: 'normal'
-                  }}>
-                    {rIndex + 1}
-                  </td>
-                  {row.map((cell, cIndex) => {
-                    let char = cell.char;
-                    let color = '#a19f9d'; 
-                    let bg = '#ffffff'; 
+          {/* HTML ルート宣言のダミー */}
+          <div style={{ color: '#5f6368', marginBottom: '4px' }}>&lt;!DOCTYPE html&gt;</div>
+          <div style={{ color: '#881280', marginBottom: '2px' }}>&lt;<span style={{ color: '#1a73e8' }}>html</span>&gt;</div>
+          <div style={{ color: '#881280', paddingLeft: '15px', marginBottom: '2px' }}>&lt;<span style={{ color: '#1a73e8' }}>head</span>&gt;&lt;/<span style={{ color: '#1a73e8' }}>head</span>&gt;</div>
+          <div style={{ color: '#881280', paddingLeft: '15px', marginBottom: '5px' }}>&lt;<span style={{ color: '#1a73e8' }}>body</span>&gt;</div>
 
-                    if (cell.type === 'player') {
-                      char = '@';
-                      color = '#18181b';
-                      bg = '#fff2cc'; // プレイヤー位置をExcel風イエローでハイライト
-                    } else if (cell.type === 'floor') {
-                      color = '#cbd5e1'; 
-                      char = '.';
-                    } else if (cell.type === 'stairs') {
-                      color = '#b45309'; 
-                      bg = '#ffe699'; // 階段マークを警告オレンジ背景に
-                    } else if (cell.type === 'object') {
-                      const found = objects.find(o => o.id === cell.id)?.found;
-                      color = found ? '#107c41' : '#a80000'; 
-                      bg = found ? '#e2f0d9' : '#fce4d6'; // 未取得は赤、既取得は緑でセル背景を分ける
-                    } else if (cell.type === 'npc') {
-                      color = '#5c2d91'; 
-                      bg = '#e4e2e2'; 
-                    } else if (cell.type === 'fog' || cell.type === 'void') {
-                      char = '\u00A0';
-                      bg = '#f3f2f1'; // 未開拓フォグはグレーの空セルにする
-                    }
+          {/* 31x31 マップを DOMツリー（グリッド状の要素）に擬態して描画 */}
+          <div style={{
+            paddingLeft: '30px',
+            display: 'flex',
+            flexDirection: 'column',
+            fontFamily: 'Consolas, monospace',
+            fontSize: '11px',
+            lineHeight: '1.1'
+          }}>
+            {renderGrid.map((row, rIndex) => (
+              <div key={rIndex} style={{ display: 'flex', height: '14px' }}>
+                {row.map((cell, cIndex) => {
+                  let char = '&lt;div&gt;';
+                  let color = '#881280'; // 通常タグの紫文字
+                  let bg = 'transparent';
 
-                    return (
-                      <td 
-                        key={cIndex} 
-                        style={{
-                          width: '18px',
-                          height: '18px',
-                          textAlign: 'center',
-                          padding: 0,
-                          fontSize: '13.5px',
-                          fontFamily: 'monospace',
-                          color,
-                          backgroundColor: bg,
-                          border: '1px solid #e1dfdd',
-                          userSelect: 'none',
-                          fontWeight: cell.type === 'player' || cell.type === 'object' || cell.type === 'npc' ? 'bold' : 'normal'
-                        }}
-                      >
-                        {char}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  if (cell.type === 'player') {
+                    char = '== $0';
+                    color = '#ffffff';
+                    bg = '#1a73e8'; // アクティブ要素の青ハイライト
+                  } else if (cell.type === 'floor') {
+                    char = ' &middot; '; // 床ドットは目立たない中黒スペースに
+                    color = '#e1dfdd';
+                  } else if (cell.type === 'stairs') {
+                    char = '&lt;a&gt;'; // 階段はリンクタグ
+                    color = '#1155cc';
+                  } else if (cell.type === 'object') {
+                    const found = objects.find(o => o.id === cell.id)?.found;
+                    char = found ? `&lt;!--${cell.id}--&gt;` : `&lt;span&gt;`; // 未取得はspanタグ、取得済みはコメント
+                    color = found ? '#1e7e34' : '#c53929';
+                  } else if (cell.type === 'npc') {
+                    char = '&lt;npc&gt;';
+                    color = '#7c3aed';
+                  } else if (cell.type === 'fog' || cell.type === 'void') {
+                    char = '\u00A0'; // フォグは空白ノード
+                  }
+
+                  return (
+                    <span
+                      key={cIndex}
+                      dangerouslySetInnerHTML={{ __html: char }}
+                      style={{
+                        width: '16px',
+                        height: '14px',
+                        textAlign: 'center',
+                        display: 'inline-block',
+                        fontSize: '9.5px',
+                        color,
+                        backgroundColor: bg,
+                        overflow: 'hidden',
+                        textOverflow: 'clip',
+                        whiteSpace: 'nowrap',
+                        fontWeight: cell.type === 'player' ? 'bold' : 'normal',
+                        cursor: 'default',
+                        userSelect: 'none'
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ color: '#881280', paddingLeft: '15px', marginTop: '5px' }}>&lt;/<span style={{ color: '#1a73e8' }}>body</span>&gt;</div>
+          <div style={{ color: '#881280' }}>&lt;/<span style={{ color: '#1a73e8' }}>html</span>&gt;</div>
         </div>
 
-        {/* 中央: SYSTEM TIMELINE ログ (幅 360px 固定) */}
+        {/* 右側: Styles パネル (進行ログをCSSルールに擬態) */}
         <div style={{
-          flex: '0 0 380px',
-          display: 'flex',
-          flexDirection: 'column',
-          borderRight: '2px solid #d1d1d1',
+          flex: 1,
+          overflowY: 'auto',
+          backgroundColor: '#ffffff',
           boxSizing: 'border-box'
         }}>
-          {/* テーブルヘッダー的な見出し */}
+          {/* サブヘッダータブ */}
           <div style={{
-            backgroundColor: '#f3f2f1',
-            borderBottom: '1px solid #d1d1d1',
-            padding: '6px 12px',
-            fontWeight: 'bold',
+            backgroundColor: '#f1f3f4',
+            borderBottom: '1px solid #dadce0',
+            display: 'flex',
             fontSize: '11px',
-            color: '#595959',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
+            height: '24px',
+            alignItems: 'center',
+            paddingLeft: '5px',
+            userSelect: 'none'
           }}>
-            RECOVERY_LOG_BUFFER
+            <div style={{ padding: '0 8px', color: '#202124', borderBottom: '1px solid #202124', fontWeight: 'bold' }}>Styles</div>
+            <div style={{ padding: '0 8px', color: '#5f6368' }}>Computed</div>
+            <div style={{ padding: '0 8px', color: '#5f6368' }}>Layout</div>
+            <div style={{ padding: '0 8px', color: '#5f6368' }}>Event Listeners</div>
           </div>
-          
-          {/* スクロールする中身 */}
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '12px',
-            backgroundColor: '#ffffff'
-          }}>
-            {isLoadError && (
-              <div style={{ padding: '8px 10px', backgroundColor: '#fde7e9', border: '1px solid #e00b1c', borderRadius: '2px', color: '#a80000', fontSize: '11.5px', marginBottom: '10px' }}>
-                <strong>CRITICAL CONNECTION DROPPED</strong><br />
-                <button onClick={handleRetry} style={{ marginTop: '6px', padding: '3px 8px', fontSize: '10.5px', backgroundColor: '#a80000', color: '#ffffff', border: 'none', cursor: 'pointer' }}>
-                  Force Reconnect
-                </button>
-              </div>
-            )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'monospace', fontSize: '11.5px' }}>
-              {systemLogs.map((log, idx) => {
-                if (log.type === 'system') {
+          {/* CSSルール構造の中にタイムラインログを埋め込む */}
+          <div style={{ padding: '10px', fontSize: '11px', lineHeight: '1.4' }}>
+            {/* ダミーのセレクタ */}
+            <div style={{ color: '#202124', fontWeight: 'bold', marginBottom: '4px' }}>element.style &#123;</div>
+            <div style={{ paddingLeft: '15px', color: '#5f6368', marginBottom: '8px' }}>
+              sector-id: <span style={{ color: '#c2850c' }}>0x0{floor}</span>;<br />
+              offset-depth: <span style={{ color: '#c2850c' }}>{floor * 100}m</span>;
+            </div>
+            <div style={{ color: '#202124', fontWeight: 'bold' }}>&#125;</div>
+
+            {/* タイムラインログをCSSクラス風に展開 */}
+            <div style={{ marginTop: '15px' }}>
+              <div style={{ color: '#202124', fontWeight: 'bold', marginBottom: '4px' }}>.recovery-timeline-buffer &#123;</div>
+              <div style={{ paddingLeft: '15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {systemLogs.map((log, idx) => {
+                  let logColor = '#005a9e';
+                  let key = `sys-log-${idx}`;
+                  if (log.type === 'success') logColor = '#1e7e34';
+                  if (log.type === 'error') logColor = '#c53929';
+                  if (log.type === 'npc_dialog') logColor = '#5c2d91';
+
                   return (
-                    <div key={idx} style={{ color: '#005a9e', borderLeft: '3px solid #0078d4', paddingLeft: '8px', lineHeight: '1.4' }}>
-                      [SYS_DAEMON] {log.text}
+                    <div key={idx} style={{ color: '#5f6368' }}>
+                      {key}: <span style={{ color: logColor }}>"{log.text}"</span>;
                     </div>
                   );
-                } else if (log.type === 'success') {
-                  return (
-                    <div key={idx} style={{ color: '#107c41', borderLeft: '3px solid #107c41', paddingLeft: '8px', lineHeight: '1.4', fontWeight: 'bold', backgroundColor: '#f3faf5', padding: '4px 6px' }}>
-                      [SYS_OK] {log.text}
-                    </div>
-                  );
-                } else if (log.type === 'error') {
-                  return (
-                    <div key={idx} style={{ color: '#a80000', borderLeft: '3px solid #a80000', paddingLeft: '8px', lineHeight: '1.4', backgroundColor: '#fde7e9', padding: '4px 6px' }}>
-                      [SYS_ERR] {log.text}
-                    </div>
-                  );
-                } else if (log.type === 'npc_dialog') {
-                  return (
-                    <div key={idx} style={{ padding: '6px 8px', backgroundColor: '#f3f2f1', borderLeft: '3px solid #5c2d91', fontSize: '12px', color: '#323130', lineHeight: '1.4' }}>
-                      <strong style={{ color: '#5c2d91' }}>💬 [{log.name}]:</strong><br />
-                      {log.text}
-                    </div>
-                  );
-                } else {
-                  return (
-                    <div key={idx} style={{ padding: '6px 8px', backgroundColor: '#faf9f8', borderLeft: '3px solid #0078d4', fontSize: '12px', color: '#323130', lineHeight: '1.4' }}>
-                      <strong style={{ color: '#0078d4' }}>[{log.name}] payload:</strong><br />
-                      {log.text}
-                    </div>
-                  );
-                }
-              })}
+                })}
+              </div>
+              <div style={{ color: '#202124', fontWeight: 'bold', marginTop: '4px' }}>&#125;</div>
+            </div>
+
+            {/* ダミーのCSSクラス */}
+            <div style={{ marginTop: '15px', borderTop: '1px solid #dadce0', paddingTop: '10px' }}>
+              <div style={{ color: '#202124', fontWeight: 'bold' }}>.inspector-engine-diagnostics &#123;</div>
+              <div style={{ paddingLeft: '15px', color: '#5f6368' }}>
+                api-license: <span style={{ color: '#1a73e8' }}>"{apiKeyInfo}"</span>;<br />
+                connection-state: <span style={{ color: isLoadError ? '#c53929' : '#1e7e34', fontWeight: 'bold' }}>"{isLoadError ? 'FAILURE' : 'SECURE_STABLE'}"</span>;
+              </div>
+              <div style={{ color: '#202124', fontWeight: 'bold' }}>&#125;</div>
             </div>
           </div>
         </div>
 
-        {/* 右側: デコードされたストリームバッファ (Excelテーブル風リスト) */}
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: '#ffffff'
-        }}>
-          {/* テーブルヘッダーの見出し */}
-          <div style={{
-            backgroundColor: '#f3f2f1',
-            borderBottom: '1px solid #d1d1d1',
-            padding: '6px 12px',
-            fontWeight: 'bold',
-            fontSize: '11px',
-            color: '#595959',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }}>
-            DECODED_DATA_SHEET
-          </div>
-
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '15px'
-          }}>
-            {recoveredTexts.length === 0 ? (
-              <div style={{ color: '#797775', fontSize: '12px', fontStyle: 'italic', textAlign: 'center', marginTop: '40px' }}>
-                Unallocated memory space. Extract A-{String.fromCharCode(64 + objects.length)} nodes to decode raw logs.
-              </div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                <thead>
-                  <tr>
-                    <th style={{ width: '15%', backgroundColor: '#f3f2f1', border: '1px solid #d1d1d1', padding: '6px', fontWeight: 'bold' }}>BLOCK_ID</th>
-                    <th style={{ width: '15%', backgroundColor: '#f3f2f1', border: '1px solid #d1d1d1', padding: '6px', fontWeight: 'bold' }}>OFFSET</th>
-                    <th style={{ width: '70%', backgroundColor: '#f3f2f1', border: '1px solid #d1d1d1', padding: '6px', fontWeight: 'bold' }}>RAW_TEXT_STREAM</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recoveredTexts.map((item, index) => (
-                    <tr key={index}>
-                      <td style={{ border: '1px solid #e1dfdd', padding: '8px', fontWeight: 'bold', color: '#107c41', backgroundColor: '#f3faf5' }}>
-                        {item.name}
-                      </td>
-                      <td style={{ border: '1px solid #e1dfdd', padding: '8px', textAlign: 'center', color: '#595959' }}>
-                        {item.count}/{objects.length}
-                      </td>
-                      <td style={{ border: '1px solid #e1dfdd', padding: '8px', lineHeight: '1.45', whiteSpace: 'pre-wrap', color: '#323130' }}>
-                        {item.text}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
       </div>
 
-      {/* 6. Excelの下部ステータスバー */}
+      {/* 4. 下部: Console パネル (回収された日記ログをJSのコンソール出力に擬態) */}
       <div style={{
-        height: '24px',
-        backgroundColor: '#107c41',
-        color: '#ffffff',
+        height: '220px',
+        borderTop: '1px solid #dadce0',
+        backgroundColor: '#ffffff',
         display: 'flex',
-        alignItems: 'center',
-        padding: '0 12px',
-        fontSize: '11px',
-        justifyContent: 'space-between',
-        userSelect: 'none',
-        flexShrink: 0
+        flexDirection: 'column',
+        boxSizing: 'border-box'
       }}>
-        <div style={{ display: 'flex', gap: '15px' }}>
-          <span>Ready</span>
-          <span>|</span>
-          <span>Average: 0.0825</span>
-          <span>|</span>
-          <span>Sum: {objects.filter(o=>o.found).length}</span>
+        {/* コンソール用のツールバー */}
+        <div style={{
+          backgroundColor: '#f1f3f4',
+          borderBottom: '1px solid #dadce0',
+          padding: '4px 10px',
+          display: 'flex',
+          alignItems: 'center',
+          fontSize: '11px',
+          color: '#5f6368',
+          gap: '12px',
+          userSelect: 'none'
+        }}>
+          <div style={{ fontWeight: 'bold', color: '#202124' }}>Console</div>
+          <div>🚫 Clear</div>
+          <div style={{ borderLeft: '1px solid #dadce0', paddingLeft: '12px' }}>
+            Filter: <input type="text" readOnly placeholder="Expression" style={{ border: '1px solid #dadce0', padding: '1px 5px', fontSize: '10.5px', outline: 'none', width: '80px' }} />
+          </div>
+          <div style={{ marginLeft: 'auto' }}>Default levels 🔽</div>
         </div>
-        <div>
-          <span>Sheet1</span>
+
+        {/* コンソールログ出力エリア (回収された日記本文) */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '8px 15px',
+          fontFamily: "Consolas, 'Courier New', monospace",
+          fontSize: '11.5px',
+          lineHeight: '1.45',
+          backgroundColor: '#ffffff'
+        }}>
+          {recoveredTexts.length === 0 ? (
+            <div style={{ color: '#797775', fontStyle: 'italic' }}>
+              &gt; No active stream buffers. Decode unallocated memory nodes (A-{String.fromCharCode(64 + objects.length)}) to print log payloads.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {recoveredTexts.map((item, index) => {
+                const now = new Date();
+                const timeStr = now.toTimeString().split(' ')[0];
+                return (
+                  <div key={index} style={{
+                    borderBottom: '1px solid #f1f3f4',
+                    padding: '4px 0',
+                    display: 'flex',
+                    alignItems: 'flex-start'
+                  }}>
+                    {/* タイムスタンプとメッセージ */}
+                    <div style={{ flex: 1, color: '#323130' }}>
+                      <span style={{ color: '#5f6368', marginRight: '8px' }}>[{timeStr}]</span>
+                      <span style={{ color: '#1a73e8', fontWeight: 'bold', marginRight: '6px' }}>[{item.name}]</span>
+                      <span style={{ color: '#5f6368', marginRight: '8px' }}>(Offset {item.count}/{objects.length}):</span>
+                      <span style={{ color: '#202124', whiteSpace: 'pre-wrap' }}>{item.text}</span>
+                    </div>
+                    {/* JSファイルからの出力であるかのようなダミーのリンク */}
+                    <div style={{ color: '#1a73e8', textDecoration: 'underline', cursor: 'pointer', fontSize: '10px', marginLeft: '15px' }}>
+                      gemini_engine.js:{162 + index}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* コンソール入力プロンプトのダミー */}
+          <div style={{ display: 'flex', alignItems: 'center', marginTop: '6px', color: '#1a73e8' }}>
+            <span style={{ marginRight: '6px', fontWeight: 'bold' }}>&gt;</span>
+            <input 
+              type="text" 
+              readOnly 
+              placeholder="ctrl + i to turn on code suggestions. Don't show again" 
+              style={{ border: 'none', outline: 'none', flex: 1, fontSize: '11px', color: '#797775', fontStyle: 'italic', padding: 0 }}
+            />
+          </div>
         </div>
       </div>
     </div>
