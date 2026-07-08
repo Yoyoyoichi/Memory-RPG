@@ -463,7 +463,10 @@ export default function MemoryRPG() {
 
   const handleStartConnection = () => {
     setIsConnectionStarted(true);
-    window.focus(); // ボタンクリック直後にフォーカスをウィンドウへ奪う
+    // ReactがDOMを描画し、スタートボタンが消滅した直後に確実にフォーカスを当てるためのディレイ
+    setTimeout(() => {
+      window.focus();
+    }, 50);
   };
 
   const currentRows = dungeon ? dungeon.length : 0;
