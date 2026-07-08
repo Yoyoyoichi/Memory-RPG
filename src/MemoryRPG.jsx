@@ -603,12 +603,10 @@ export default function MemoryRPG() {
                     color = '#1155cc';
                   } else if (cell.type === 'object') {
                     const found = objects.find(o => o.id === cell.id)?.found;
-                    // 未取得: "<id_A>" タグ風に目立つ赤で表示
-                    // 取得済み: "<!--A-->" コメントアウトして緑で表示
-                    char = found ? `&lt;!--${cell.id}--&gt;` : `&lt;id_${cell.id}&gt;`;
+                    char = cell.id; // 元の記号（A, B, C...）に戻す
                     color = found ? '#1e7e34' : '#c53929';
                   } else if (cell.type === 'npc') {
-                    char = '&lt;npc&gt;';
+                    char = 'N'; // 元の記号（N）に戻す
                     color = '#7c3aed';
                   } else if (cell.type === 'wall') {
                     // 壁は "<div class=\"wall-node\">" を文字単位で敷き詰める
