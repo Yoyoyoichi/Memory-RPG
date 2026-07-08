@@ -211,8 +211,8 @@ export default function MemoryRPG() {
   const [retryTrigger, setRetryTrigger] = useState(0); 
 
   const apiKeyInfo = localStorage.getItem('GEMINI_API_KEY') 
-    ? '設定済み (localStorage)' 
-    : (import.meta.env.VITE_GEMINI_API_KEY ? '設定済み (Vite環境変数)' : '未設定 (フォールバックデータが使用されます)');
+    ? 'ACTIVE (LocalStorage)' 
+    : (import.meta.env.VITE_GEMINI_API_KEY ? 'ACTIVE (ViteENV)' : 'NOT_FOUND (FallbackMode)');
 
   // 階層読み込み時の処理
   useEffect(() => {
@@ -233,7 +233,7 @@ export default function MemoryRPG() {
         if (!active) return;
 
         if (storyData.message && storyData.message.includes('エラー')) {
-          setDebugLog(`APIからの返却データにエラーが含まれています: ${storyData.message}`);
+          setDebugLog(`API Error response: ${storyData.message}`);
         }
 
         const npcData = (storyData.npcName && storyData.npcText) ? {
@@ -255,12 +255,12 @@ export default function MemoryRPG() {
         setRecoveredTexts([]); 
         
         setSystemLogs([
-          { type: 'system', text: storyData.message || `第${floor}階層に接続しました。` }
+          { type: 'system', text: storyData.message || `Connected to Sector 0x0${floor}.` }
         ]);
       } catch (err) {
         if (active) {
           setIsLoadError(true);
-          setDebugLog(`Dungeon構築エラー: ${err.message || err}`);
+          setDebugLog(`Dungeon generation failure: ${err.message || err}`);
           const dummyData = generateSimpleDungeon(floor, null, null);
           setDungeon(dummyData.grid);
           setRooms(dummyData.rooms);
@@ -270,7 +270,7 @@ export default function MemoryRPG() {
           setExploredTiles({});
 
           setSystemLogs([
-            { type: 'error', text: `セクターのデコードに失敗しました。詳細: ${err.message || err}` }
+            { type: 'error', text: `Failed to decode data stream buffer: ${err.message || err}` }
           ]);
         }
       } finally {
@@ -292,7 +292,7 @@ export default function MemoryRPG() {
     if (objects.length > 0 && objects.every(o => o.found)) {
       setAllFound(true);
       setSystemLogs(prev => [
-        { type: 'success', text: 'すべてのデータの断片を回収しました。ゲート [>] から次の階層へ降下できます。' },
+        { type: 'success', text: 'Sync Ready: All allocated nodes matched. Accessing sector exit [>] allowed.' },
         ...prev
       ]);
     }
@@ -367,7 +367,7 @@ export default function MemoryRPG() {
       if (targetObj) {
         if (targetObj.found) {
           setSystemLogs(prev => [
-            { type: 'system', text: `[${targetObj.name}] のデータはすでにサルベージ済みです。` },
+            { type: 'system', text: `Node [${targetObj.name}] is already synchronized.` },
             ...prev
           ]);
         } else {
@@ -386,19 +386,19 @@ export default function MemoryRPG() {
             }));
             
             setSystemLogs(prev => [
-              { type: 'diary_reveal', name: targetObj.name, text: targetObj.text },
-              { type: 'system', text: `[${targetObj.name}] のデータ（断片 ${foundCount + 1}/${objects.length}）をサルベージしました。` },
+              { type: 'diary_reveal', name: `BLOCK_${targetObj.id}`, text: targetObj.text },
+              { type: 'system', text: `Synchronized memory block [${targetObj.name}] (Offset ${foundCount + 1}/${objects.length}).` },
               ...prev
             ]);
 
             setRecoveredTexts(prev => [
               ...prev,
-              { name: targetObj.name, text: targetObj.text, count: foundCount + 1 }
+              { name: `BLOCK_${targetObj.id}`, text: targetObj.text, count: foundCount + 1 }
             ]);
           } else {
             const correctNextName = objects[foundCount] ? objects[foundCount].name : expectedId;
             setSystemLogs(prev => [
-              { type: 'error', text: `データリンクエラー：[${objId}] は現在デコードできません。先に [${correctNextName}] を接続してください。` },
+              { type: 'error', text: `Sync Error: Stream discontinuity detected. Expected block [${expectedId}] before accessing [${objId}].` },
               ...prev
             ]);
           }
@@ -409,7 +409,7 @@ export default function MemoryRPG() {
     // 観察者NPCに接触
     if (tile.type === 'npc' && observerNpc) {
       setSystemLogs(prev => [
-        { type: 'npc_dialog', name: observerNpc.name, text: observerNpc.text },
+        { type: 'npc_dialog', name: `OBSERVER: ${observerNpc.name}`, text: observerNpc.text },
         ...prev
       ]);
     }
@@ -418,7 +418,7 @@ export default function MemoryRPG() {
     if (tile.type === 'stairs') {
       if (!allFound) {
         setSystemLogs(prev => [
-          { type: 'error', text: 'まだこの階層のデータ回収が完了していません。すべてのオブジェクトを調査してください。' },
+          { type: 'error', text: `Sync Error: Sector synchronization incomplete. Please scan all unallocated memory nodes first.` },
           ...prev
         ]);
       } else {
@@ -450,7 +450,7 @@ export default function MemoryRPG() {
     setRetryTrigger(prev => prev + 1);
   };
 
-  if (!dungeon) return <div style={{ padding: '50px', textAlign: 'center', fontFamily: 'monospace', color: '#6b7280' }}>接続を初期化中...</div>;
+  if (!dungeon) return <div style={{ padding: '50px', textAlign: 'center', fontFamily: 'monospace', color: '#6b7280' }}>Initializing database log connection...</div>;
 
   const currentRows = dungeon.length;
   const currentCols = dungeon[0].length;
@@ -489,14 +489,14 @@ export default function MemoryRPG() {
         {/* カラム1: マップ表示エリア (左端・幅 520px 固定) */}
         <div style={{ flex: '0 0 520px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
-            <h1 style={{ fontSize: '22px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#6b7280' }}>Memory RPG (電脳回廊)</h1>
-            <div style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '5px' }}>第 {floor} 階層 (電脳深度: {floor * 100}m)</div>
+            <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#4b5563', letterSpacing: '0.5px' }}>Memory Log Recovery Console v1.0.8</h1>
+            <div style={{ color: '#9ca3af', fontSize: '12px', marginBottom: '5px' }}>Sector: 0x0{floor} (Buffer Depth: {floor * 100}m)</div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px', backgroundColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', width: '100%', boxSizing: 'border-box', opacity: isLoadError ? 0.45 : 1 }}>
             {isLoading ? (
               <div style={{ textAlign: 'center', color: '#6b7280', display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '340px', justifyContent: 'center' }}>
-                <div style={{ fontSize: '16px', fontWeight: 'bold' }}>[ SYSTEM: ACCESSING ARCHIVE... ]</div>
-                <div style={{ fontSize: '13px' }}>古いセクターをデコードしています。</div>
+                <div style={{ fontSize: '15px', fontWeight: 'bold' }}>[ SYSTEM: ACCESSING ARCHIVE... ]</div>
+                <div style={{ fontSize: '12px' }}>Locating physical disk sectors. Please wait.</div>
               </div>
             ) : (
               <div style={{ fontFamily: 'monospace', fontSize: '15px', lineHeight: '1.2', letterSpacing: '1px', display: 'block', margin: '0 auto' }}>
@@ -550,30 +550,30 @@ export default function MemoryRPG() {
             )}
           </div>
 
-          {/* ステータスバッジリスト (マップのすぐ下へ移動) */}
+          {/* ステータスバッジリスト (マップのすぐ下) */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginTop: '5px' }}>
             {observerNpc && (
-              <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '4px', border: '1px solid #ddd6fe', backgroundColor: '#f5f3ff', color: '#6d28d9', fontWeight: 'bold' }}>
-                👤 {observerNpc.name}
+              <span style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '4px', border: '1px solid #ddd6fe', backgroundColor: '#f5f3ff', color: '#6d28d9', fontWeight: 'bold' }}>
+                👤 OBSERVER: {observerNpc.name}
               </span>
             )}
             {objects.map(obj => (
-              <span key={obj.id} style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '4px', border: '1px solid #e5e7eb', backgroundColor: obj.found ? '#ecfdf5' : '#fef2f2', color: obj.found ? '#047857' : '#b91c1c', fontWeight: 'bold' }}>
+              <span key={obj.id} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '4px', border: '1px solid #e5e7eb', backgroundColor: obj.found ? '#ecfdf5' : '#fef2f2', color: obj.found ? '#047857' : '#b91c1c', fontWeight: 'bold' }}>
                 [{obj.id}] {obj.name}
               </span>
             ))}
           </div>
 
-          {/* デバッグパネル (マップ下のステータスバッジの下へ移動) */}
-          <div style={{ border: '1px dashed #d1d5db', borderRadius: '8px', padding: '10px 12px', backgroundColor: '#f9fafb', fontSize: '11px', color: '#4b5563', flexShrink: 0, marginTop: '10px' }}>
-            <h4 style={{ margin: '0 0 4px 0', fontSize: '11px', fontWeight: 'bold', color: '#374151' }}>[ DEBUG PANEL ]</h4>
-            <div style={{ marginBottom: '4px' }}><strong>APIキー状況:</strong> {apiKeyInfo}</div>
+          {/* デバッグパネル (マップ下のステータスバッジの下) */}
+          <div style={{ border: '1px dashed #d1d5db', borderRadius: '8px', padding: '10px 12px', backgroundColor: '#f9fafb', fontSize: '11px', color: '#4b5563', flexShrink: 0, marginTop: '5px' }}>
+            <h4 style={{ margin: '0 0 4px 0', fontSize: '11px', fontWeight: 'bold', color: '#374151' }}>[ ENGINE DIAGNOSTICS ]</h4>
+            <div style={{ marginBottom: '4px' }}><strong>API LICENSE:</strong> {apiKeyInfo}</div>
             {debugLog ? (
               <div style={{ color: '#dc2626', backgroundColor: '#fee2e2', padding: '4px 6px', borderRadius: '4px', border: '1px solid #fecaca', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
                 <strong>Error Log:</strong><br />{debugLog}
               </div>
             ) : (
-              <div style={{ color: '#059669' }}>API連携は正常です。</div>
+              <div style={{ color: '#059669' }}>API STATUS: SECURE / STABLE</div>
             )}
           </div>
         </div>
@@ -582,17 +582,17 @@ export default function MemoryRPG() {
         <div style={{ flex: '0 0 360px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           {/* システム案内ログ（逆時系列） */}
           <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '15px', backgroundColor: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '10px', height: 'calc(100vh - 170px)', overflowY: 'auto' }}>
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', borderBottom: '1px solid #f3f4f6', paddingBottom: '4px', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>--- SYSTEM TIMELINE (LATEST ON TOP) ---</div>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', borderBottom: '1px solid #f3f4f6', paddingBottom: '4px', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>--- RECOVERY TIMELINE (LATEST ON TOP) ---</div>
             
             {/* エラー時再接続ボタン */}
             {isLoadError && (
               <div style={{ padding: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', flexShrink: 0 }}>
-                <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 'bold' }}>⚠️ 接続エラーが発生しました。</span>
+                <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 'bold' }}>⚠️ Linkage drop detected.</span>
                 <button 
                   onClick={handleRetry} 
                   style={{ padding: '6px 12px', fontSize: '11.5px', fontFamily: 'monospace', fontWeight: 'bold', backgroundColor: '#dc2626', color: '#ffffff', border: 'none', borderRadius: '4px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
                 >
-                  [ セクターに再接続 ]
+                  [ Force Reconnect ]
                 </button>
               </div>
             )}
@@ -602,19 +602,19 @@ export default function MemoryRPG() {
                 if (log.type === 'system') {
                   return (
                     <div key={idx} style={{ color: '#2563eb', fontSize: '12px', lineHeight: '1.4' }}>
-                      ⚙️ [SYSTEM] {log.text}
+                      ⚙️ [SYS_DAEMON] {log.text}
                     </div>
                   );
                 } else if (log.type === 'success') {
                   return (
                     <div key={idx} style={{ color: '#16a34a', fontSize: '12px', fontWeight: 'bold', lineHeight: '1.4', padding: '6px', backgroundColor: '#f0fdf4', borderRadius: '4px', border: '1px solid #d1fae5' }}>
-                      🔓 [SYSTEM] {log.text}
+                      🔓 [SYS_DAEMON] {log.text}
                     </div>
                   );
                 } else if (log.type === 'error') {
                   return (
                     <div key={idx} style={{ color: '#dc2626', fontSize: '12px', lineHeight: '1.4', padding: '6px', backgroundColor: '#fef2f2', borderRadius: '4px', border: '1px solid #fee2e2' }}>
-                      ⚠️ [SYSTEM ERROR] {log.text}
+                      ⚠️ [SYS_CRITICAL_ERR] {log.text}
                     </div>
                   );
                 } else if (log.type === 'npc_dialog') {
@@ -627,7 +627,7 @@ export default function MemoryRPG() {
                 } else {
                   return (
                     <div key={idx} style={{ padding: '8px 10px', backgroundColor: '#f9fafb', borderLeft: '3px solid #3b82f6', borderRadius: '0 4px 4px 0', fontSize: '12.5px', color: '#374151', lineHeight: '1.4' }}>
-                      <strong style={{ fontSize: '11px', color: '#3b82f6' }}>[{log.name}] デコードデータ:</strong><br />
+                      <strong style={{ fontSize: '11px', color: '#3b82f6' }}>[{log.name}] data payload:</strong><br />
                       {log.text}
                     </div>
                   );
@@ -637,21 +637,21 @@ export default function MemoryRPG() {
           </div>
         </div>
 
-        {/* カラム3: サルベージログ & デバッグ情報 (右端・残り幅すべて / flex: 1) */}
+        {/* カラム3: サルベージログ (右端・残り幅すべて / flex: 1) */}
         <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', gap: '15px', minWidth: '400px' }}>
           {/* サルベージログ */}
           <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '20px 25px', backgroundColor: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '15px', height: 'calc(100vh - 170px)', overflowY: 'auto' }}>
-            <h3 style={{ margin: '0', borderBottom: '1px solid #f3f4f6', paddingBottom: '6px', fontSize: '13px', fontWeight: 'bold', color: '#6b7280', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>--- サルベージされた記憶の断片 (LOG) ---</h3>
+            <h3 style={{ margin: '0', borderBottom: '1px solid #f3f4f6', paddingBottom: '6px', fontSize: '13px', fontWeight: 'bold', color: '#6b7280', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 1 }}>--- DECODED STREAM BUFFER (RAW LOG) ---</h3>
             {recoveredTexts.length === 0 ? (
               <div style={{ color: '#9ca3af', fontSize: '13.5px', fontStyle: 'italic', textAlign: 'center', marginTop: '20px' }}>
-                データ未回収。セクター内のオブジェクトを調査してください。
+                Buffer empty. Scan allocating nodes to stream recovered data blocks.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {recoveredTexts.map((item, index) => (
                   <div key={index} style={{ borderLeft: '2px solid #3b82f6', paddingLeft: '12px' }}>
                     <div style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 'bold', marginBottom: '2px' }}>
-                      [{item.name}] (断片 {item.count}/{objects.length})
+                      [{item.name}] (Offset {item.count}/{objects.length})
                     </div>
                     <p style={{ margin: 0, lineHeight: '1.55', fontSize: '13.5px', color: '#1f2937', whiteSpace: 'pre-wrap' }}>
                       {item.text}
