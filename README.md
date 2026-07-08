@@ -7,3 +7,5 @@ A retro cyber-archival text exploration game. Memory fragments are retrieved thr
 - `src/main.jsx`: Application entry point.
 - `src/utils/gemini.js`: Story generation API connector.
 
+- Trigger Deploy (Force Build)
+
