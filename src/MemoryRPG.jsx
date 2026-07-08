@@ -481,6 +481,16 @@ export default function MemoryRPG() {
     renderGrid.push(row);
   }
 
+  // HTMLコード壁の表示用文字を生成するためのジェネレータ
+  // "<div class=\"wall-node\">" などを順に繰り返して敷き詰める
+  const htmlWallString = '<div class="wall-node">';
+  let wallCharPointer = 0;
+  const getNextWallChar = () => {
+    const char = htmlWallString[wallCharPointer];
+    wallCharPointer = (wallCharPointer + 1) % htmlWallString.length;
+    return char;
+  };
+
   return (
     <div style={{
       width: '100vw',
@@ -576,29 +586,45 @@ export default function MemoryRPG() {
             {renderGrid.map((row, rIndex) => (
               <div key={rIndex} style={{ display: 'flex', height: '14px' }}>
                 {row.map((cell, cIndex) => {
-                  let char = '&lt;div&gt;';
-                  let color = '#881280'; // 通常タグの紫文字
+                  let char = '';
+                  let color = '#881280'; 
                   let bg = 'transparent';
+                  let isString = false;
 
                   if (cell.type === 'player') {
                     char = '== $0';
                     color = '#ffffff';
                     bg = '#1a73e8'; // アクティブ要素の青ハイライト
                   } else if (cell.type === 'floor') {
-                    char = ' &middot; '; // 床ドットは目立たない中黒スペースに
-                    color = '#e1dfdd';
+                    char = '·'; // 床ドットはごく薄い点（コードのインデントを表現）
+                    color = '#cbd5e1';
                   } else if (cell.type === 'stairs') {
                     char = '&lt;a&gt;'; // 階段はリンクタグ
                     color = '#1155cc';
                   } else if (cell.type === 'object') {
                     const found = objects.find(o => o.id === cell.id)?.found;
-                    char = found ? `&lt;!--${cell.id}--&gt;` : `&lt;span&gt;`; // 未取得はspanタグ、取得済みはコメント
+                    // 未取得: "<id_A>" タグ風に目立つ赤で表示
+                    // 取得済み: "<!--A-->" コメントアウトして緑で表示
+                    char = found ? `&lt;!--${cell.id}--&gt;` : `&lt;id_${cell.id}&gt;`;
                     color = found ? '#1e7e34' : '#c53929';
                   } else if (cell.type === 'npc') {
                     char = '&lt;npc&gt;';
                     color = '#7c3aed';
+                  } else if (cell.type === 'wall') {
+                    // 壁は "<div class=\"wall-node\">" を文字単位で敷き詰める
+                    const rawChar = getNextWallChar();
+                    char = rawChar === '<' ? '&lt;' : rawChar === '>' ? '&gt;' : rawChar;
+                    
+                    // HTMLタグの配色（ブラケット・タグ名は紫、属性名は青、値はオレンジ）
+                    if (rawChar === '<' || rawChar === '>' || rawChar === '/' || htmlWallString.substring(wallCharPointer - 1, wallCharPointer + 3).includes('div')) {
+                      color = '#881280'; // 紫
+                    } else if (htmlWallString.substring(wallCharPointer - 1, wallCharPointer + 5).includes('class')) {
+                      color = '#1a73e8'; // 青
+                    } else {
+                      color = '#c80000'; // オレンジ
+                    }
                   } else if (cell.type === 'fog' || cell.type === 'void') {
-                    char = '\u00A0'; // フォグは空白ノード
+                    char = '\u00A0'; // フォグは空白
                   }
 
                   return (
@@ -610,13 +636,13 @@ export default function MemoryRPG() {
                         height: '14px',
                         textAlign: 'center',
                         display: 'inline-block',
-                        fontSize: '9.5px',
+                        fontSize: '10px',
                         color,
                         backgroundColor: bg,
                         overflow: 'hidden',
                         textOverflow: 'clip',
                         whiteSpace: 'nowrap',
-                        fontWeight: cell.type === 'player' ? 'bold' : 'normal',
+                        fontWeight: cell.type === 'player' || cell.type === 'object' ? 'bold' : 'normal',
                         cursor: 'default',
                         userSelect: 'none'
                       }}
