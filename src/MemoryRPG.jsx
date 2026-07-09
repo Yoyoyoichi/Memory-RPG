@@ -704,44 +704,86 @@ export default function MemoryRPG() {
             <div style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
               {/* ESLint未使用エラー回避用ダミー評価 */}
               {(() => { if (typeof getNextWallChar === 'function') { getNextWallChar(); } })()}
-              {renderGrid.map((row, rIndex) => (
-                <div key={rIndex} style={{ display: 'flex', height: '14px', whiteSpace: 'nowrap' }}>
-                  {row.map((cell, cIndex) => {
-                    let text = cell.char;
-                    let color = '#202124'; // 通常の文字色（# や . など用）
-                    let fontWeight = 'normal';
+              {renderGrid.map((row, rIndex) => {
+                // 行の中のセルを、連続する「横壁ブロック」と「それ以外のセル」にグループ化して配置する
+                const elements = [];
+                let i = 0;
+                while (i < row.length) {
+                  const cell = row[i];
 
-                    // 横壁かどうかの判定（自分が壁で、かつ左右のどちらかも壁である場合）
-                    const isLeftWall = cIndex > 0 && row[cIndex - 1].type === 'wall';
-                    const isRightWall = cIndex < row.length - 1 && row[cIndex + 1].type === 'wall';
-                    const isHorizontalWall = cell.type === 'wall' && (isLeftWall || isRightWall);
+                  // 横壁かどうかの判定（自分が壁で、かつ左右のどちらかも壁である場合）
+                  const isLeftWall = i > 0 && row[i - 1].type === 'wall';
+                  const isRightWall = i < row.length - 1 && row[i + 1].type === 'wall';
+                  const isHorizontalWall = cell.type === 'wall' && (isLeftWall || isRightWall);
 
-                    if (isHorizontalWall) {
-                      text = '<div class="wall">';
-                      color = '#881280'; // タグ名（紫）
-                    } else if (cell.type === 'player') {
-                      text = cell.char; // @
-                      color = '#1a73e8'; // プレイヤー（青）
-                      fontWeight = 'bold';
-                    } else if (cell.type === 'wall') {
-                      // 縦方向の壁など（左右が壁ではない単独の壁）
-                      text = cell.char; // #
-                      color = '#5f6368'; // 縦壁はグレーのままで目立たせない
+                  if (isHorizontalWall) {
+                    // 連続する横壁の長さをカウントする
+                    let start = i;
+                    while (i < row.length) {
+                      const nextCell = row[i];
+                      const nextLeftWall = i > 0 && row[i - 1].type === 'wall';
+                      const nextRightWall = i < row.length - 1 && row[i + 1].type === 'wall';
+                      const nextIsHorizontal = nextCell.type === 'wall' && (nextLeftWall || nextRightWall);
+                      if (!nextIsHorizontal) break;
+                      i++;
                     }
+                    const count = i - start;
+                    const widthPx = count * 10; // 1セルあたり10pxの幅を確保
 
-                    return (
+                    // 確保した幅の中に収まるきれいなHTMLコードを生成
+                    // 例: `<div class="w-10">` など、幅に応じたコード
+                    const codeText = `<div class="wall-x${count}">`;
+
+                    elements.push(
                       <span
-                        key={cIndex}
+                        key={`wall-${start}`}
                         style={{
                           fontFamily: "Consolas, 'Courier New', monospace",
                           fontSize: '10px',
                           lineHeight: '14px',
-                          width: '10px', // 1マスの幅を10pxに固定して横伸びを防ぐ
+                          width: `${widthPx}px`,
+                          color: '#881280', // タグ名（紫）
+                          display: 'inline-block',
+                          overflow: 'hidden', // はみ出しをカットして整列させる
+                          textOverflow: 'clip',
+                          whiteSpace: 'nowrap',
+                          userSelect: 'none',
+                          cursor: 'default',
+                          textAlign: 'left'
+                        }}
+                        title={`Horizontal Wall [Length: ${count}]`}
+                      >
+                        {codeText}
+                      </span>
+                    );
+                  } else {
+                    // 通常のセル（床、プレイヤー、縦壁、空白など）
+                    let text = cell.char;
+                    let color = '#202124';
+                    let fontWeight = 'normal';
+
+                    if (cell.type === 'player') {
+                      text = cell.char;
+                      color = '#1a73e8';
+                      fontWeight = 'bold';
+                    } else if (cell.type === 'wall') {
+                      // 縦方向の壁など（単独の壁）
+                      text = cell.char;
+                      color = '#5f6368';
+                    }
+
+                    elements.push(
+                      <span
+                        key={i}
+                        style={{
+                          fontFamily: "Consolas, 'Courier New', monospace",
+                          fontSize: '10px',
+                          lineHeight: '14px',
+                          width: '10px',
                           textAlign: 'center',
                           display: 'inline-block',
                           color,
                           fontWeight,
-                          overflow: 'visible', // はみ出した長いタグ文字をそのまま右側に流す
                           userSelect: 'none',
                           cursor: 'default'
                         }}
@@ -749,9 +791,16 @@ export default function MemoryRPG() {
                         {text}
                       </span>
                     );
-                  })}
-                </div>
-              ))}
+                    i++;
+                  }
+                }
+
+                return (
+                  <div key={rIndex} style={{ display: 'flex', height: '14px', whiteSpace: 'nowrap' }}>
+                    {elements}
+                  </div>
+                );
+              })}
             </div>
           )}
 
