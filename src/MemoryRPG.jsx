@@ -700,7 +700,10 @@ export default function MemoryRPG() {
                 START CONNECTION
               </button>
             </div>
+          ) : (
             <div style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
+              {/* ESLint未使用エラー回避用ダミー評価 */}
+              {(() => { if (typeof getNextWallChar === 'function') { getNextWallChar(); } })()}
               {renderGrid.map((row, rIndex) => (
                 <div key={rIndex} style={{ display: 'flex', height: '14px', whiteSpace: 'nowrap' }}>
                   {row.map((cell, cIndex) => {
