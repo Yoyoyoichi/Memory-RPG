@@ -30,6 +30,8 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Build
+        env:
+          VITE_PROXY_URL: https://yellow-waterfall-8020.9170chet.workers.dev
         run: npm run build
       - name: Setup Pages
         uses: actions/configure-pages@v4
