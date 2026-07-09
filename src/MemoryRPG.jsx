@@ -210,6 +210,7 @@ export default function MemoryRPG() {
   const [debugLog, setDebugLog] = useState('');
   const [retryTrigger, setRetryTrigger] = useState(0);
   const [isConnectionStarted, setIsConnectionStarted] = useState(false); // 通信開始ボタン制御フラグ
+  const [apiKeyInput, setApiKeyInput] = useState(localStorage.getItem('GEMINI_API_KEY') || ''); // APIキーの入力ステート
 
   const apiKeyInfo = localStorage.getItem('GEMINI_API_KEY') 
     ? 'ACTIVE (LocalStorage)' 
@@ -494,6 +495,11 @@ export default function MemoryRPG() {
   };
 
   const handleStartConnection = () => {
+    if (apiKeyInput.trim()) {
+      localStorage.setItem('GEMINI_API_KEY', apiKeyInput.trim());
+    } else {
+      localStorage.removeItem('GEMINI_API_KEY');
+    }
     setIsConnectionStarted(true);
     // ボタン消滅後に最外枠のコンテナへフォーカスを当てる
     setTimeout(() => {
@@ -650,10 +656,49 @@ export default function MemoryRPG() {
               textAlign: 'center'
             }}>
               <div style={{ color: '#5f6368', fontSize: '13px', fontWeight: 'bold', marginBottom: '10px' }}>[ CONNECT DISCONNECTED ]</div>
-              <div style={{ color: '#797775', fontSize: '11.5px', marginBottom: '25px', lineHeight: '1.45' }}>
+              <div style={{ color: '#797775', fontSize: '11.5px', marginBottom: '15px', lineHeight: '1.45' }}>
                 Memory log synchronizer interface is ready.<br />
                 Press start button to connect and mount active DOM tree sectors.
               </div>
+
+              {/* カモフラージュAPIキー設定フォーム */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '20px',
+                fontFamily: 'monospace',
+                fontSize: '11px',
+                color: '#5f6368',
+                backgroundColor: '#f1f3f4',
+                padding: '6px 12px',
+                borderRadius: '4px',
+                border: '1px solid #dadce0',
+                width: '320px',
+                boxSizing: 'border-box'
+              }}>
+                <span style={{ color: '#881280', fontWeight: 'bold' }}>const</span>
+                <span style={{ color: '#1a73e8' }}>API_KEY</span>
+                <span>=</span>
+                <input 
+                  type="password" 
+                  placeholder="AIzaSy... (Gemini API Key)"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  style={{
+                    flex: 1,
+                    border: 'none',
+                    background: 'transparent',
+                    outline: 'none',
+                    fontFamily: 'monospace',
+                    fontSize: '11px',
+                    color: '#c80000',
+                    borderBottom: '1px solid #c80000',
+                    padding: '1px 3px'
+                  }}
+                />
+              </div>
+
               <button 
                 onClick={handleStartConnection} 
                 style={{
