@@ -700,11 +700,55 @@ export default function MemoryRPG() {
                 START CONNECTION
               </button>
             </div>
-          ) : (
             <div style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
-              <pre style={{ margin: 0, fontFamily: "Consolas, 'Courier New', monospace", lineHeight: '1em', color: '#202124' }}>
-                {renderGrid.map(row => row.map(cell => cell.char).join('')).join('\n')}
-              </pre>
+              {renderGrid.map((row, rIndex) => (
+                <div key={rIndex} style={{ display: 'flex', height: '14px', whiteSpace: 'nowrap' }}>
+                  {row.map((cell, cIndex) => {
+                    let text = cell.char;
+                    let color = '#202124'; // 通常の文字色（# や . など用）
+                    let fontWeight = 'normal';
+
+                    // 横壁かどうかの判定（自分が壁で、かつ左右のどちらかも壁である場合）
+                    const isLeftWall = cIndex > 0 && row[cIndex - 1].type === 'wall';
+                    const isRightWall = cIndex < row.length - 1 && row[cIndex + 1].type === 'wall';
+                    const isHorizontalWall = cell.type === 'wall' && (isLeftWall || isRightWall);
+
+                    if (isHorizontalWall) {
+                      text = '<div class="wall">';
+                      color = '#881280'; // タグ名（紫）
+                    } else if (cell.type === 'player') {
+                      text = cell.char; // @
+                      color = '#1a73e8'; // プレイヤー（青）
+                      fontWeight = 'bold';
+                    } else if (cell.type === 'wall') {
+                      // 縦方向の壁など（左右が壁ではない単独の壁）
+                      text = cell.char; // #
+                      color = '#5f6368'; // 縦壁はグレーのままで目立たせない
+                    }
+
+                    return (
+                      <span
+                        key={cIndex}
+                        style={{
+                          fontFamily: "Consolas, 'Courier New', monospace",
+                          fontSize: '10px',
+                          lineHeight: '14px',
+                          width: '10px', // 1マスの幅を10pxに固定して横伸びを防ぐ
+                          textAlign: 'center',
+                          display: 'inline-block',
+                          color,
+                          fontWeight,
+                          overflow: 'visible', // はみ出した長いタグ文字をそのまま右側に流す
+                          userSelect: 'none',
+                          cursor: 'default'
+                        }}
+                      >
+                        {text}
+                      </span>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           )}
 
