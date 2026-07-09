@@ -702,9 +702,69 @@ export default function MemoryRPG() {
             </div>
           ) : (
             <div style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
-              <pre style={{ margin: 0, fontFamily: "Consolas, 'Courier New', monospace", lineHeight: '1em', color: '#202124' }}>
-                {renderGrid.map(row => row.map(cell => cell.char).join('')).join('\n')}
-              </pre>
+              {renderGrid.map((row, rIndex) => (
+                <div key={rIndex} style={{ display: 'flex', height: '14px', whiteSpace: 'nowrap' }}>
+                  {row.map((cell, cIndex) => {
+                    let text = '';
+                    let color = '#5f6368'; // デフォルト色
+                    let bg = 'transparent';
+                    let fontWeight = 'normal';
+
+                    // セルの種類に応じたHTMLカモフラージュ表現
+                    if (cell.type === 'player') {
+                      text = '== $0';
+                      color = '#ffffff';
+                      bg = '#1a73e8'; // DevToolsのアクティブ行選択色
+                      fontWeight = 'bold';
+                    } else if (cell.type === 'floor') {
+                      text = '·'; // インデント用ドット
+                      color = '#cbd5e1';
+                    } else if (cell.type === 'stairs') {
+                      text = '<a>';
+                      color = '#1155cc';
+                    } else if (cell.type === 'object') {
+                      const found = objects.find(o => o.id === cell.id)?.found;
+                      text = found ? `<!--${cell.id}-->` : cell.id;
+                      color = found ? '#1e7e34' : '#c53929';
+                      fontWeight = 'bold';
+                    } else if (cell.type === 'npc') {
+                      text = 'NPC';
+                      color = '#7c3aed';
+                    } else if (cell.type === 'wall') {
+                      text = '<div>';
+                      color = '#881280'; // HTMLタグの紫
+                    } else if (cell.type === 'void') {
+                      text = '<!--void-->';
+                      color = '#1e7e34'; // コメントの緑色
+                    } else if (cell.type === 'fog') {
+                      text = '<!--fog-->';
+                      color = '#1e7e34'; // コメントの緑色
+                    } else {
+                      text = cell.char;
+                    }
+
+                    return (
+                      <span
+                        key={cIndex}
+                        style={{
+                          fontFamily: "Consolas, 'Courier New', monospace",
+                          fontSize: '10px',
+                          lineHeight: '14px',
+                          padding: '0 2px',
+                          color,
+                          backgroundColor: bg,
+                          fontWeight,
+                          display: 'inline-block',
+                          userSelect: 'none',
+                          cursor: 'default'
+                        }}
+                      >
+                        {text}
+                      </span>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           )}
 
