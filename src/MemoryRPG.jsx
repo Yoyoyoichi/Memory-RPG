@@ -872,7 +872,33 @@ export default function MemoryRPG() {
             <div style={{ marginTop: '15px', borderTop: '1px solid #dadce0', paddingTop: '10px' }}>
               <div style={{ color: '#202124', fontWeight: 'bold' }}>.inspector-engine-diagnostics &#123;</div>
               <div style={{ paddingLeft: '15px', color: '#5f6368' }}>
-                api-license: <span style={{ color: '#1a73e8' }}>"{apiKeyInfo}"</span>;<br />
+                api-key-bind: 
+                <input 
+                  type="password"
+                  value={apiKeyInput}
+                  placeholder="AIzaSy... (Gemini API Key)"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setApiKeyInput(val);
+                    if (val.trim()) {
+                      localStorage.setItem('GEMINI_API_KEY', val.trim());
+                    } else {
+                      localStorage.removeItem('GEMINI_API_KEY');
+                    }
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    borderBottom: '1px solid #1a73e8',
+                    color: '#1a73e8',
+                    fontFamily: 'monospace',
+                    fontSize: '11px',
+                    outline: 'none',
+                    width: '130px',
+                    marginLeft: '6px',
+                    padding: '0 2px'
+                  }}
+                />;<br />
                 connection-state: <span style={{ color: isLoadError ? '#c53929' : '#1e7e34', fontWeight: 'bold' }}>"{isLoadError ? 'FAILURE' : 'SECURE_STABLE'}"</span>;
               </div>
               <div style={{ color: '#202124', fontWeight: 'bold' }}>&#125;</div>
