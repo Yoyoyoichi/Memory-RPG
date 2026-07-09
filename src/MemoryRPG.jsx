@@ -417,8 +417,8 @@ export default function MemoryRPG() {
             }));
             
             setSystemLogs(prev => [
-              { type: 'diary_reveal', name: `BLOCK_${targetObj.id}`, text: targetObj.text },
-              { type: 'system', text: `Synchronized memory block [${targetObj.name}] (Offset ${foundCount + 1}/${activeObjs.length}).` },
+              { type: 'diary_reveal', name: `*`, text: targetObj.text },
+              { type: 'system', text: `* Sync: ${foundCount + 1}/${activeObjs.length}` },
               ...prev
             ]);
 
@@ -626,29 +626,14 @@ export default function MemoryRPG() {
           flex: '0 0 540px',
           overflow: 'auto',
           borderRight: '1px solid #dadce0',
-          backgroundColor: '#ffffff',
-          boxSizing: 'border-box',
-          padding: '10px',
-          display: 'flex',
-          flexDirection: 'column'
+          backgroundColor: '#ffffff'
         }}>
-          {/* HTML ルート宣言 of ダミー */}
-          <div style={{ color: '#5f6368', marginBottom: '4px' }}>&lt;!DOCTYPE html&gt;</div>
-          <div style={{ color: '#881280', marginBottom: '2px' }}>&lt;<span style={{ color: '#1a73e8' }}>html</span>&gt;</div>
-          <div style={{ color: '#881280', paddingLeft: '15px', marginBottom: '2px' }}>&lt;<span style={{ color: '#1a73e8' }}>head</span>&gt;&lt;/<span style={{ color: '#1a73e8' }}>head</span>&gt;</div>
-          <div style={{ color: '#881280', paddingLeft: '15px', marginBottom: '5px' }}>&lt;<span style={{ color: '#1a73e8' }}>body</span>&gt;</div>
+          <div style={{ color: '#881280', paddingLeft: '5px' }}>&lt;<span style={{ color: '#1a73e8' }}>html</span>&gt;</div>
+          <div style={{ color: '#881280', paddingLeft: '10px' }}>&lt;<span style={{ color: '#1a73e8' }}>body</span>&gt;</div>
 
-          {/* 31x31 マップエリアの表示分岐 */}
           {!isConnectionStarted ? (
-            // 通信開始前のプレースホルダー（開始ボタンを表示）
             <div style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              minHeight: '430px',
-              border: '1px dashed #dadce0',
+              border: '2px dashed #dadce0',
               margin: '0 15px',
               backgroundColor: '#fafafa',
               borderRadius: '4px',
@@ -660,7 +645,11 @@ export default function MemoryRPG() {
                 Memory log synchronizer interface is ready.<br />
                 Press start button to connect and mount active DOM tree sectors.
               </div>
-
+              <div style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
+                <pre style={{ margin: 0, fontFamily: "Consolas, 'Courier New', monospace", lineHeight: '1em', color: '#202124' }}>
+                  {renderGrid.map(row => row.map(cell => cell.char).join('')).join('\n')}
+                </pre>
+              </div>
               {/* カモフラージュAPIキー設定フォーム */}
               <div style={{
                 display: 'flex',
@@ -690,122 +679,32 @@ export default function MemoryRPG() {
                     border: 'none',
                     background: 'transparent',
                     outline: 'none',
-                    fontFamily: 'monospace',
-                    fontSize: '11px',
-                    color: '#c80000',
-                    borderBottom: '1px solid #c80000',
-                    padding: '1px 3px'
+                    fontFamily: 'monospace'
                   }}
                 />
               </div>
 
               <button 
-                onClick={handleStartConnection} 
+                onClick={handleStartConnection}
                 style={{
+                  padding: '8px 24px',
                   backgroundColor: '#1a73e8',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '4px',
-                  padding: '8px 18px',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-                  fontFamily: 'monospace'
+                  fontSize: '12px',
+                  fontWeight: 'bold'
                 }}
               >
-                [ Start Recovery Console ]
+                START CONNECTION
               </button>
             </div>
-          ) : isLoading ? (
-            // ローディング画面
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              minHeight: '430px',
-              color: '#5f6368',
-              gap: '12px'
-            }}>
-              <div style={{ fontSize: '14px', fontWeight: 'bold' }}>[ SYSTEM: ACCESSING ARCHIVE... ]</div>
-              <div style={{ fontSize: '11px' }}>Locating physical disk sectors. Please wait.</div>
-            </div>
           ) : (
-            // 31x31 マップを DOMツリー（グリッド状の要素）に擬態して描画
-            <div style={{
-              paddingLeft: '30px',
-              display: 'flex',
-              flexDirection: 'column',
-              fontFamily: "Consolas, 'Courier New', monospace",
-              fontSize: '11px',
-              lineHeight: '1.1'
-            }}>
-              {renderGrid.map((row, rIndex) => (
-                <div key={rIndex} style={{ display: 'flex', height: '14px' }}>
-                  {row.map((cell, cIndex) => {
-                    let char = '';
-                    let color = '#881280'; 
-                    let bg = 'transparent';
-
-                    if (cell.type === 'player') {
-                      char = '== $0';
-                      color = '#ffffff';
-                      bg = '#1a73e8'; // アクティブ要素の青ハイライト
-                    } else if (cell.type === 'floor') {
-                      char = '·'; // 床ドットはごく薄い点（コードのインデントを表現）
-                      color = '#cbd5e1';
-                    } else if (cell.type === 'stairs') {
-                      char = '&lt;a&gt;'; // 階段はリンクタグ
-                      color = '#1155cc';
-                    } else if (cell.type === 'object') {
-                      const found = objects.find(o => o.id === cell.id)?.found;
-                      char = found ? `&lt;!--${cell.id}--&gt;` : cell.id; // 元のA, B, C記号
-                      color = found ? '#1e7e34' : '#c53929';
-                    } else if (cell.type === 'npc') {
-                      char = 'N'; // 元のN記号
-                      color = '#7c3aed';
-                    } else if (cell.type === 'wall') {
-                      const rawChar = getNextWallChar();
-                      char = rawChar === '<' ? '&lt;' : rawChar === '>' ? '&gt;' : rawChar;
-                      
-                      // HTMLタグの配色（ブラケット・タグ名は紫、属性名は青、値はオレンジ）
-                      if (rawChar === '<' || rawChar === '>' || rawChar === '/' || htmlWallString.substring(wallCharPointer - 1, wallCharPointer + 3).includes('div')) {
-                        color = '#881280'; 
-                      } else if (htmlWallString.substring(wallCharPointer - 1, wallCharPointer + 5).includes('class')) {
-                        color = '#1a73e8'; 
-                      } else {
-                        color = '#c80000'; 
-                      }
-                    } else if (cell.type === 'fog' || cell.type === 'void') {
-                      char = '\u00A0'; 
-                    }
-
-                    return (
-                      <span
-                        key={cIndex}
-                        dangerouslySetInnerHTML={{ __html: char }}
-                        style={{
-                          width: '16px',
-                          height: '14px',
-                          textAlign: 'center',
-                          display: 'inline-block',
-                          fontSize: '10px',
-                          color,
-                          backgroundColor: bg,
-                          overflow: 'hidden',
-                          textOverflow: 'clip',
-                          whiteSpace: 'nowrap',
-                          fontWeight: cell.type === 'player' || cell.type === 'object' ? 'bold' : 'normal',
-                          cursor: 'default',
-                          userSelect: 'none'
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              ))}
+            <div style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
+              <pre style={{ margin: 0, fontFamily: "Consolas, 'Courier New', monospace", lineHeight: '1em', color: '#202124' }}>
+                {renderGrid.map(row => row.map(cell => cell.char).join('')).join('\n')}
+              </pre>
             </div>
           )}
 
