@@ -25,7 +25,7 @@ export async function generateFloorStory(floorNumber) {
 
 // Memory RPG 用のストーリーとサルベージテキストの動的生成
 export async function generateMemoryFloorStory(floorNumber, seedString, salvageCount = 4) {
-  // 1. Google Cloud Functions のプロキシURLが設定されている場合は、中継サーバーを優先して使用
+  // 1. Google Cloud Functions / Cloudflare Workers のプロキシURLが設定されている場合は、中継サーバーを使用
   if (PROXY_URL) {
     try {
       const response = await fetch(PROXY_URL, {
@@ -41,14 +41,15 @@ export async function generateMemoryFloorStory(floorNumber, seedString, salvageC
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP Error Status: ${response.status}`);
+        const errText = await response.text();
+        throw new Error(`Proxy Server Error: ${response.status} - ${errText}`);
       }
 
       const data = await response.json();
       return data;
     } catch (proxyError) {
-      console.error("Proxy Connection Failed, falling back directly to local direct API:", proxyError);
-      // 中継サーバーがエラーを吐いた場合は、予備としてブラウザ直接の API 通信に自動フォールバック
+      console.error("Proxy Connection Failed:", proxyError);
+      throw new Error(`Proxy Connection Failed: ${proxyError.message || proxyError}`);
     }
   }
 
