@@ -641,6 +641,7 @@ export default function MemoryRPG() {
               textAlign: 'center'
             }}>
               <div style={{ color: '#5f6368', fontSize: '13px', fontWeight: 'bold', marginBottom: '10px' }}>[ CONNECT DISCONNECTED ]</div>
+              <div style={{ color: '#9aa0a6', fontSize: '10px', marginBottom: '10px', fontFamily: 'monospace' }}>BUILD_VERSION: v1.3-syntax-highlight</div>
               <div style={{ color: '#797775', fontSize: '11.5px', marginBottom: '15px', lineHeight: '1.45' }}>
                 Memory log synchronizer interface is ready.<br />
                 Press start button to connect and mount active DOM tree sectors.
@@ -664,7 +665,8 @@ export default function MemoryRPG() {
                 borderRadius: '4px',
                 border: '1px solid #dadce0',
                 width: '320px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                margin: '0 auto 20px auto'
               }}>
                 <span style={{ color: '#881280', fontWeight: 'bold' }}>const</span>
                 <span style={{ color: '#1a73e8' }}>API_KEY</span>
@@ -708,6 +710,11 @@ export default function MemoryRPG() {
                 // 行の中のセルを、連続する「横壁ブロック」と「それ以外のセル」にグループ化して配置する
                 const elements = [];
                 let i = 0;
+                
+                // 行の末尾付近を不揃い（デコボコ）にするための限界幅をランダムに決定
+                // 座標に基づいて固定値（プレイヤー移動でチラチラしない）でデコボコにする
+                const jaggedLimit = row.length - (Math.abs(rIndex * 13) % 6);
+
                 while (i < row.length) {
                   const cell = row[i];
 
@@ -730,10 +737,8 @@ export default function MemoryRPG() {
                     const count = i - start;
                     const widthPx = count * 10; // 1セルあたり10pxの幅を確保
 
-                    // 確保した幅の中に収まるきれいなHTMLコードを生成
-                    // 例: `<div class="w-10">` など、幅に応じたコード
-                    const codeText = `<div class="wall-x${count}">`;
-
+                    // タグをシンタックスハイライト風に色分けして表示するコンポーネント
+                    // <div class="wX"> を細かく色分け
                     elements.push(
                       <span
                         key={`wall-${start}`}
@@ -742,9 +747,8 @@ export default function MemoryRPG() {
                           fontSize: '10px',
                           lineHeight: '14px',
                           width: `${widthPx}px`,
-                          color: '#881280', // タグ名（紫）
                           display: 'inline-block',
-                          overflow: 'hidden', // はみ出しをカットして整列させる
+                          overflow: 'hidden',
                           textOverflow: 'clip',
                           whiteSpace: 'nowrap',
                           userSelect: 'none',
@@ -753,22 +757,60 @@ export default function MemoryRPG() {
                         }}
                         title={`Horizontal Wall [Length: ${count}]`}
                       >
-                        {codeText}
+                        <span style={{ color: '#881280' }}>&lt;div</span>
+                        <span style={{ color: '#1a73e8' }}> class</span>
+                        <span style={{ color: '#202124' }}>=</span>
+                        <span style={{ color: '#c80000' }}>"w{count}"</span>
+                        <span style={{ color: '#881280' }}>&gt;</span>
                       </span>
                     );
                   } else {
-                    // 通常のセル（床、プレイヤー、縦壁、空白など）
-                    let text = cell.char;
+                    // 通常のセル（床、プレイヤー、縦壁、空白、階段など）
+                    let text = cell.char || '\u00A0';
                     let color = '#202124';
                     let fontWeight = 'normal';
 
-                    if (cell.type === 'player') {
-                      text = cell.char;
-                      color = '#1a73e8';
+                    const isVoid = cell.type === 'fog' || cell.type === 'void';
+
+                    if (isVoid) {
+                      if (i >= jaggedLimit) {
+                        // デコボコにするため、行末付近は完全に空白にする
+                        text = '\u00A0';
+                        color = 'transparent';
+                      } else {
+                        // シンタックスハイライト対応のコード用トークンを座標に基づいて決定的に割り当てる
+                        // 1文字ずつの色分けで「プログラムの一部」に見せる
+                        const tokens = [
+                          { char: 'i', color: '#1a73e8' }, { char: 'f', color: '#1a73e8' }, // if
+                          { char: '\u00A0', color: '#202124' },
+                          { char: '(', color: '#202124' }, { char: 'x', color: '#202124' }, { char: ' ', color: '#202124' },
+                          { char: '=', color: '#202124' }, { char: '=', color: '#202124' }, { char: ' ', color: '#202124' },
+                          { char: '0', color: '#c80000' }, { char: ')', color: '#202124' }, { char: ' ', color: '#202124' },
+                          { char: '{', color: '#202124' }, { char: '\u00A0', color: '#202124' },
+                          { char: 'c', color: '#881280' }, { char: 'o', color: '#881280' }, { char: 'n', color: '#881280' },
+                          { char: 's', color: '#881280' }, { char: 't', color: '#881280' }, { char: ' ', color: '#202124' },
+                          { char: 'a', color: '#1a73e8' }, { char: '=', color: '#202124' }, { char: '1', color: '#c80000' },
+                          { char: ';', color: '#202124' }, { char: '}', color: '#202124' },
+                          { char: '/', color: '#1e7e34' }, { char: '/', color: '#1e7e34' }, { char: 'o', color: '#1e7e34' },
+                          { char: 'k', color: '#1e7e34' }
+                        ];
+
+                        const tokenIndex = Math.abs(rIndex * 5 + i * 3) % tokens.length;
+                        const matched = tokens[tokenIndex];
+                        text = matched.char;
+                        color = matched.color;
+                      }
+                    } else if (cell.type === 'player') {
+                      text = cell.char || '@';
+                      color = '#ffffff';
+                      fontWeight = 'bold';
+                    } else if (cell.type === 'stairs') {
+                      text = cell.char || '>';
+                      color = '#d93025'; // 階段（出口）を赤色にして視認性を上げる
                       fontWeight = 'bold';
                     } else if (cell.type === 'wall') {
                       // 縦方向の壁など（単独の壁）
-                      text = cell.char;
+                      text = '#';
                       color = '#5f6368';
                     }
 
@@ -783,6 +825,7 @@ export default function MemoryRPG() {
                           textAlign: 'center',
                           display: 'inline-block',
                           color,
+                          backgroundColor: cell.type === 'player' ? '#1a73e8' : 'transparent', // プレイヤーはDevTools選択風ハイライト
                           fontWeight,
                           userSelect: 'none',
                           cursor: 'default'
